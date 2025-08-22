@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>استشارتي - رحلتك نحو التميز والنجاح</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-storage-compat.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;600;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #0A1628 0%, #6A0DAD 50%, #0A1628 100%);
+        }
+
+        /* Welcome Message Banner */
+        .welcome-banner {
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            text-align: center;
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+            font-size: 1rem;
+            position: relative;
+            z-index: 999;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 22, 40, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid #D4AF37;
+            padding: 0.8rem 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #E5E4E2;
+            font-weight: 600;
+            transition: color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-links a:hover {
+            color: #FFD700;
+        }
+
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #FFD700;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: rgba(10, 22, 40, 0.98);
+            backdrop-filter: blur(20px);
+            padding: 1rem;
+            z-index: 999;
+        }
+
+        .mobile-nav.active {
+            display: block;
+        }
+
+        .mobile-nav a {
+            display: block;
+            color: #E5E4E2;
+            text-decoration: none;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav a:hover {
+            color: #FFD700;
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        /* Invisible Admin Access Button */
+        .admin-access {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+        }
+
+        .admin-access:hover {
+            opacity: 0.2;
+            background: rgba(212, 175, 55, 0.3);
+            transform: translateY(-50%) scale(1.5);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: calc(100vh - 60px);
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding: 2rem 1rem;
+            margin-top: 60px;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            width: 100%;
+        }
+
+        .hero-text h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-text .highlight {
+            color: #FFD700;
+            font-size: 3rem;
+        }
+
+        .hero-text p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+        }
+
+        .cta-secondary {
+            background: transparent;
+            color: #D4AF37;
+            padding: 1rem 1.5rem;
+            border: 2px solid #D4AF37;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .cta-secondary:hover {
+            background: #D4AF37;
+            color: #0A1628;
+        }
+
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-circle {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            animation: float 6s ease-in-out infinite;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.5);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Section Base Styles */
+        .section {
+            padding: 4rem 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 3rem;
+        }
+
+        /* About Section */
+        .about-section {
+            background: linear-gradient(180deg, #F8F6F0 0%, #ffffff 100%);
+        }
+
+        /* Enhanced Video Gallery */
+        .video-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #6A0DAD, #0A1628, #D4AF37);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-content {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .play-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #6A0DAD;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            background: white;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+
+        .video-thumbnail:hover .video-overlay {
+            opacity: 1;
+        }
+
+        .video-info {
+            padding: 1.5rem;
+        }
+
+        .video-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .video-description {
+            color: #666;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* Services Section */
+        .services-section {
+            background: linear-gradient(135deg, #0A1628 0%, #6A0DAD 100%);
+        }
+
+        .services-section .section-title,
+        .services-section .section-subtitle {
+            color: white;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border-top: 5px solid #D4AF37;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .service-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .service-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .service-description {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .whatsapp-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
+        }
+
+        /* Reviews Section */
+        .reviews-section {
+            background: #f8f9fa;
+        }
+
+        .add-review-btn {
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 0 auto 3rem;
+        }
+
+        .add-review-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
+        }
+
+        .reviews-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .review-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .review-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .service-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .review-text {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .reviewer {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .reviewer-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .reviewer-info h4 {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .reviewer-info .stars {
+            color: #FFD700;
+            font-size: 0.9rem;
+        }
+
+        .new-review {
+            border: 2px solid #D4AF37;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Review Modal */
+        .review-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        }
+
+        .review-modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f5f5f5;
+            border: none;
+        }
+
+        .close-modal:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #D4AF37;
+        }
+
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .star {
+            font-size: 1.5rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+
+        .submit-review-btn,
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-review-btn:hover,
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: linear-gradient(135deg, #0A1628 0%, #6A0DAD 100%);
+        }
+
+        .contact-section .section-title,
+        .contact-section .section-subtitle {
+            color: white;
+        }
+
+        .contact-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        /* Footer */
+        .footer {
+            background: #333;
+            color: white;
+            padding: 3rem 0 1rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: #FFD700;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            line-height: 2;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            background: #D4AF37;
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .social-links a:hover {
+            transform: translateY(-3px);
+            background: #FFD700;
+        }
+
+        /* Office Address Section */
+        .office-address {
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            color: #0A1628;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-radius: 15px;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        }
+
+        .office-address h4 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .office-address p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Floating WhatsApp */
+        .floating-whatsapp {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 55px;
+            height: 55px;
+            background: #25D366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            text-decoration: none;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .floating-whatsapp:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 2px solid #D4AF37;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success/Error Messages */
+        .message-popup {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            max-width: 300px;
+        }
+
+        .message-popup.show {
+            transform: translateX(0);
+        }
+
+        .message-popup.success {
+            border-right: 4px solid #27ae60;
+        }
+
+        .message-popup.error {
+            border-right: 4px solid #e74c3c;
+        }
+
+        .message-popup.info {
+            border-right: 4px solid #3498db;
+        }
+
+        /* Enhanced Video Modal */
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        }
+
+        .video-modal-content {
+            background: #000;
+            border-radius: 15px;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: auto;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+        }
+
+        .video-modal video {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            display: block;
+            border-radius: 15px;
+        }
+
+        .close-video-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .close-video-modal:hover {
+            background: white;
+            transform: scale(1.05);
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .admin-access {
+                right: 60px;
+                width: 15px;
+                height: 15px;
+            }
+            
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+                padding: 1rem 0;
+            }
+            
+            .hero-text h1 {
+                font-size: 2.2rem;
+            }
+            
+            .hero-text .highlight {
+                font-size: 2.5rem;
+            }
+            
+            .hero-circle {
+                width: 250px;
+                height: 250px;
+                font-size: 3rem;
+            }
+            
+            .services-grid,
+            .video-gallery {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .reviews-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .cta-buttons {
+                justify-content: center;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cta-primary,
+            .cta-secondary {
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+            
+            .section {
+                padding: 3rem 0;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .video-thumbnail {
+                height: 160px;
+            }
+
+            .video-modal-content {
+                max-width: 95vw;
+                max-height: 85vh;
+                margin: 1rem;
+            }
+
+            .video-modal video {
+                max-height: 70vh;
+            }
+
+            .close-video-modal {
+                top: 10px;
+                right: 10px;
+                width: 35px;
+                height: 35px;
+                font-size: 1.1rem;
+            }
+
+            .play-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+
+            .welcome-banner {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .hero {
+                margin-top: 100px;
+                min-height: calc(100vh - 100px);
+            }
+
+            .navbar {
+                padding: 0.6rem 0;
+            }
+
+            .logo {
+                font-size: 1.5rem;
+            }
+
+            .service-card {
+                padding: 1.5rem 1rem;
+            }
+
+            .service-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .contact-form {
+                padding: 1.5rem;
+                margin: 0 0.5rem;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .social-links a {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .floating-whatsapp {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                bottom: 15px;
+                left: 15px;
+            }
+
+            .message-popup {
+                right: 10px;
+                max-width: calc(100vw - 20px);
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text h1 {
+                font-size: 1.8rem;
+            }
+            
+            .hero-text .highlight {
+                font-size: 2rem;
+            }
+            
+            .hero-circle {
+                width: 200px;
+                height: 200px;
+                font-size: 2.5rem;
+            }
+            
+            .review-modal-content {
+                padding: 1.5rem;
+                margin: 0.5rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .section-subtitle {
+                font-size: 1rem;
+            }
+
+            .video-thumbnail {
+                height: 140px;
+            }
+
+            .play-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .service-title {
+                font-size: 1.2rem;
+            }
+
+            .hero-text p {
+                font-size: 1rem;
+            }
+
+            .cta-primary,
+            .cta-secondary {
+                padding: 0.8rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Landscape orientation on mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .hero {
+                height: auto;
+                min-height: 100vh;
+                padding: 4rem 1rem 2rem;
+            }
+
+            .video-modal video {
+                max-height: 60vh;
+            }
+
+            .hero-circle {
+                width: 200px;
+                height: 200px;
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Tablet Styles */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hero-content {
+                gap: 2rem;
+            }
+
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-text .highlight {
+                font-size: 2.8rem;
+            }
+
+            .hero-circle {
+                width: 280px;
+                height: 280px;
+                font-size: 3.5rem;
+            }
+
+            .services-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .video-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .reviews-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1400px;
+            }
+
+            .hero-content {
+                gap: 4rem;
+            }
+
+            .services-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .video-gallery {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .reviews-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .play-btn {
+                box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            }
+
+            .floating-whatsapp {
+                box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+            }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            .video-card:hover {
+                transform: none;
+            }
+            
+            .service-card:hover {
+                transform: none;
+            }
+            
+            .review-card:hover {
+                transform: none;
+            }
+            
+            .video-thumbnail:hover .video-overlay {
+                opacity: 0;
+            }
+            
+            .cta-primary,
+            .cta-secondary,
+            .whatsapp-btn,
+            .add-review-btn {
+                min-height: 44px;
+                padding: 1rem 1.5rem;
+            }
+            
+            .close-modal,
+            .close-video-modal {
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            .star {
+                font-size: 2rem;
+                padding: 0.5rem;
+            }
+        }
+
+        /* Reduced motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            .hero-circle {
+                animation: none;
+            }
+            
+            .floating-whatsapp {
+                animation: none;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .navbar,
+            .floating-whatsapp,
+            .video-modal,
+            .review-modal,
+            .message-popup {
+                display: none !important;
+            }
+            
+            .hero {
+                margin-top: 0;
+                height: auto;
+            }
+            
+            * {
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Message Banner -->
+    <div id="welcomeBanner" class="welcome-banner">
+        مرحباً بكم في استشارتي - رحلتكم نحو التميز والنجاح تبدأ هنا
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">استشارتي</div>
+            
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="القائمة">☰</button>
+            
+            <!-- Invisible Admin Access Button -->
+            <button class="admin-access" onclick="goToAdmin()" title="Admin Access" aria-label="Admin Access"></button>
+            
+            <ul class="nav-links">
+                <li><a href="#home">الرئيسية</a></li>
+                <li><a href="#about">من نحن</a></li>
+                <li><a href="#services">خدماتنا</a></li>
+                <li><a href="#reviews">آراء العملاء</a></li>
+                <li><a href="#contact">تواصل معنا</a></li>
+            </ul>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav" id="mobileNav">
+            <a href="#home" onclick="closeMobileMenu()">الرئيسية</a>
+            <a href="#about" onclick="closeMobileMenu()">من نحن</a>
+            <a href="#services" onclick="closeMobileMenu()">خدماتنا</a>
+            <a href="#reviews" onclick="closeMobileMenu()">آراء العملاء</a>
+            <a href="#contact" onclick="closeMobileMenu()">تواصل معنا</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>رحلتك نحو <span class="highlight">التميز</span> تبدأ هنا</h1>
+                <p>نقدم خدمات الاستشارة المتخصصة بأعلى معايير الجودة والمهنية. فريقنا من الخبراء المعتمدين جاهز لمرافقتكم في رحلة التطوير والنمو نحو حياة أفضل وأكثر توازناً.</p>
+                <div class="cta-buttons">
+                    <a href="#services" class="cta-primary">🌟 ابدأ رحلتك المميزة</a>
+                    <a href="#about" class="cta-secondary">📖 اكتشف قصتنا</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-circle">💎</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section section">
+        <div class="container">
+            <h2 class="section-title">من نحن</h2>
+            <p class="section-subtitle">نحن فريق من المختصين المعتمدين في مجال الاستشارة النفسية والسلوكية</p>
+            
+            <div class="video-gallery">
+                <div class="video-card">
+                    <div class="video-thumbnail" onclick="playVideo(1)">
+                        <div class="video-overlay"></div>
+                        <div class="play-btn">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h3 class="video-title">🎯 تعرف على فريقنا المتميز</h3>
+                        <p class="video-description" id="video1Description">اكتشف خبراتنا الواسعة ومؤهلاتنا المعتمدة في مجال الاستشارة المتخصصة</p>
+                    </div>
+                </div>
+                
+                <div class="video-card">
+                    <div class="video-thumbnail" onclick="playVideo(2)">
+                        <div class="video-overlay"></div>
+                        <div class="play-btn">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h3 class="video-title">⭐ قصص نجاح ملهمة</h3>
+                        <p class="video-description" id="video2Description">شاهد تجارب حقيقية لعملائنا وكيف غيرنا حياتهم للأفضل</p>
+                    </div>
+                </div>
+                
+                <div class="video-card">
+                    <div class="video-thumbnail" onclick="playVideo(3)">
+                        <div class="video-overlay"></div>
+                        <div class="play-btn">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h3 class="video-title">🔥 منهجيتنا في العمل</h3>
+                        <p class="video-description" id="video3Description">تعرف على الطريقة المبتكرة التي نتبعها في الاستشارة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services-section section">
+        <div class="container">
+            <h2 class="section-title">خدماتنا المتخصصة</h2>
+            <p class="section-subtitle">نقدم ثلاث أنواع رئيسية من الاستشارات المتخصصة</p>
+            
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🎯</div>
+                    <h3 class="service-title">استشارة تعديل السلوك</h3>
+                    <p class="service-description">برامج متطورة ومدروسة علمياً لفهم وتعديل السلوكيات غير المرغوب فيها وبناء عادات إيجابية تدوم مدى الحياة.</p>
+                    <a href="javascript:void(0)" onclick="bookService('behavior')" class="whatsapp-btn">📱 احجز الآن</a>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">🤗</div>
+                    <h3 class="service-title">استشارة التوحد وذوي الإعاقة</h3>
+                    <p class="service-description">خدمات متخصصة وشاملة للأطفال وأسرهم في التعامل مع التوحد والإعاقات المختلفة مع برامج تأهيلية فردية.</p>
+                    <a href="javascript:void(0)" onclick="bookService('autism')" class="whatsapp-btn">📱 احجز الآن</a>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">👨‍👩‍👧‍👦</div>
+                    <h3 class="service-title">الاستشارة الأسرية</h3>
+                    <p class="service-description">تقوية الروابط الأسرية وحل النزاعات من خلال جلسات استشارية متخصصة لبناء تواصل صحي وعلاقات متوازنة.</p>
+                    <a href="javascript:void(0)" onclick="bookService('family')" class="whatsapp-btn">📱 احجز الآن</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section id="reviews" class="reviews-section section">
+        <div class="container">
+            <h2 class="section-title">آراء العملاء</h2>
+            <p class="section-subtitle">ماذا يقول عملاؤنا عن خدماتنا</p>
+            
+            <button onclick="openReviewModal()" class="add-review-btn">⭐ شاركنا تجربتك وقيّمنا</button>
+            
+            <div class="reviews-container" id="reviewsContainer">
+                <div style="text-align: center; color: #666; padding: 2rem;">
+                    <div class="loading"></div>
+                    <p>جاري تحميل التقييمات...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="review-modal">
+        <div class="review-modal-content">
+            <button class="close-modal" onclick="closeReviewModal()">&times;</button>
+            <h3 style="text-align: center; margin-bottom: 1rem;">⭐ شاركنا تجربتك</h3>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">نحن نقدر رأيك ونسعد بسماع تجربتك معنا</p>
+            
+            <form id="reviewForm" onsubmit="submitReview(event)">
+                <div class="form-group">
+                    <label>✨ اسمك (أو الأحرف الأولى)</label>
+                    <input type="text" id="reviewerName" required placeholder="مثال: أحمد محمد أو أ.م">
+                </div>
+                
+                <div class="form-group">
+                    <label>🎯 نوع الاستشارة التي حصلت عليها</label>
+                    <select id="reviewService" required>
+                        <option value="">اختر نوع الاستشارة</option>
+                        <option value="behavior">🎯 تعديل السلوك</option>
+                        <option value="autism">🤗 التوحد وذوي الإعاقة</option>
+                        <option value="family">👨‍👩‍👧‍👦 الاستشارة الأسرية</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>⭐ تقييمك للخدمة</label>
+                    <div class="star-rating" id="starRating">
+                        <span class="star" onclick="setRating(1)">☆</span>
+                        <span class="star" onclick="setRating(2)">☆</span>
+                        <span class="star" onclick="setRating(3)">☆</span>
+                        <span class="star" onclick="setRating(4)">☆</span>
+                        <span class="star" onclick="setRating(5)">☆</span>
+                    </div>
+                    <input type="hidden" id="rating" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>💬 تجربتك معنا</label>
+                    <textarea id="reviewText" rows="4" required placeholder="شاركنا تجربتك وكيف ساعدناك..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>📧 بريدك الإلكتروني (اختياري)</label>
+                    <input type="email" id="reviewerEmail" placeholder="example@email.com">
+                </div>
+                
+                <button type="submit" class="submit-review-btn" id="submitReviewBtn">🌟 إرسال التقييم</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section section">
+        <div class="container">
+            <h2 class="section-title">تواصل معنا</h2>
+            <p class="section-subtitle">نحن هنا للإجابة على استفساراتكم ومساعدتكم</p>
+            
+            <form class="contact-form" onsubmit="sendMessage(event)">
+                <div class="form-group">
+                    <label for="name">✨ الاسم الكامل</label>
+                    <input type="text" id="name" name="name" required placeholder="أدخل اسمك الكامل">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">📧 البريد الإلكتروني</label>
+                    <input type="email" id="email" name="email" required placeholder="أدخل بريدك الإلكتروني">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">📱 رقم الهاتف</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="أدخل رقم هاتفك">
+                </div>
+                
+                <div class="form-group">
+                    <label for="service">🎯 نوع الاستشارة المطلوبة</label>
+                    <select id="service" name="service" required>
+                        <option value="">اختر نوع الاستشارة</option>
+                        <option value="behavior">🎯 تعديل السلوك</option>
+                        <option value="autism">🤗 التوحد وذوي الإعاقة</option>
+                        <option value="family">👨‍👩‍👧‍👦 الاستشارة الأسرية</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">💬 رسالتك</label>
+                    <textarea id="message" name="message" rows="5" required placeholder="أخبرنا عن حالتك أو استفسارك"></textarea>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitContactBtn">🚀 إرسال الرسالة</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>✨ استشارتي</h3>
+                    <p>نقدم خدمات الاستشارة المتخصصة بأعلى معايير الجودة والمهنية.</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="فيسبوك">📘</a>
+                        <a href="#" aria-label="تويتر">🐦</a>
+                        <a href="#" aria-label="إنستجرام">📷</a>
+                        <a href="javascript:void(0)" onclick="openWhatsApp()" aria-label="واتساب">📱</a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>🎯 خدماتنا</h3>
+                    <ul>
+                        <li>• تعديل السلوك</li>
+                        <li>• التوحد وذوي الإعاقة</li>
+                        <li>• الاستشارة الأسرية</li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>📞 تواصل معنا</h3>
+                    <p>📱 هاتف: <span id="footerPhone">+962 123 456 789</span></p>
+                    <p>📧 البريد: <span id="footerEmail">info@istisharati.com</span></p>
+                    <p>⏰ أوقات العمل: <span id="footerWorkingHours">9 صباحاً - 6 مساءً</span></p>
+                </div>
+            </div>
+
+            <!-- Office Address Section -->
+            <div id="officeAddressSection" class="office-address" style="display: none;">
+                <h4>📍 عنوان مكتبنا</h4>
+                <p id="officeAddressText"></p>
+            </div>
+            
+            <div style="border-top: 1px solid #555; padding-top: 2rem; margin-top: 2rem;">
+                <p>&copy; 2025 استشارتي - جميع الحقوق محفوظة</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="javascript:void(0)" onclick="openWhatsApp()" class="floating-whatsapp" title="تواصل معنا عبر واتساب" aria-label="واتساب">📱</a>
+
+    <!-- Message Popup -->
+    <div id="messagePopup" class="message-popup">
+        <span id="popupMessage"></span>
+    </div>
+
+    <!-- Enhanced Video Modal -->
+    <div id="videoModal" class="video-modal">
+        <div class="video-modal-content">
+            <button class="close-video-modal" onclick="closeVideoModal()" aria-label="إغلاق">&times;</button>
+            <video id="modalVideo" controls preload="metadata">
+                <source src="" type="video/mp4">
+                متصفحك لا يدعم تشغيل الفيديوهات
+            </video>
+            <div class="video-controls" id="videoControls" style="display: none;">
+                اضغط مساحة للتشغيل/الإيقاف
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJVENqZbrfoVfVYG6cV3mM6PLWqO0HFAE",
+            authDomain: "flisten-be8e5.firebaseapp.com",
+            projectId: "flisten-be8e5",
+            storageBucket: "flisten-be8e5.firebasestorage.app",
+            messagingSenderId: "573846222027",
+            appId: "1:573846222027:web:85ecb357effec81c96174e"
+        };
+
+        // Initialize Firebase
+        let db, storage;
+        let isFirebaseConnected = false;
+
+        function initializeFirebase() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+                
+                db.enableNetwork().then(() => {
+                    console.log('✅ تم تفعيل الشبكة');
+                    return db.collection('settings').limit(1).get();
+                }).then(() => {
+                    isFirebaseConnected = true;
+                    console.log('✅ تم الاتصال بـ Firebase بنجاح');
+                    initializeApp();
+                }).catch((error) => {
+                    console.error('❌ خطأ في الاتصال بـ Firebase:', error);
+                    
+                    if (error.code === 'permission-denied') {
+                        showMessage('⚠️ مشكلة في صلاحيات قاعدة البيانات. يعمل الموقع في الوضع التجريبي', 'error');
+                    } else {
+                        showMessage('⚠️ خطأ في الاتصال بقاعدة البيانات. يعمل الموقع في الوضع التجريبي', 'error');
+                    }
+                    
+                    isFirebaseConnected = false;
+                    initializeApp();
+                });
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة Firebase:', error);
+                showMessage('⚠️ خطأ في تهيئة قاعدة البيانات. يعمل الموقع في الوضع التجريبي', 'error');
+                
+                isFirebaseConnected = false;
+                initializeApp();
+            }
+        }
+
+        // Global variables
+        let currentRating = 0;
+        let whatsappNumber = '+962123456789';
+        let contactEmail = 'info@istisharati.com';
+        let workingHours = '9 صباحاً - 6 مساءً';
+        let officeAddress = '';
+        let welcomeMessage = 'مرحباً بكم في استشارتي - رحلتكم نحو التميز والنجاح تبدأ هنا';
+        let videosData = {};
+
+        // Initialize App
+        function initializeApp() {
+            loadReviews();
+            loadSettings();
+            loadVideos();
+            loadVideoDescriptions();
+            setupEventListeners();
+        }
+
+        // Mobile Menu Functions
+        function toggleMobileMenu() {
+            const mobileNav = document.getElementById('mobileNav');
+            const isActive = mobileNav.classList.contains('active');
+            
+            if (isActive) {
+                closeMobileMenu();
+            } else {
+                mobileNav.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeMobileMenu() {
+            const mobileNav = document.getElementById('mobileNav');
+            mobileNav.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Smooth scrolling for navigation links
+            const links = document.querySelectorAll('a[href^="#"]');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        closeMobileMenu();
+                        const offsetTop = target.offsetTop - 80;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // Enhanced Navbar scroll effect
+            let lastScrollTop = 0;
+            let ticking = false;
+
+            function updateNavbar() {
+                const navbar = document.querySelector('.navbar');
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (window.innerWidth <= 768) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        navbar.style.transform = 'translateY(-100%)';
+                        closeMobileMenu();
+                    } else {
+                        navbar.style.transform = 'translateY(0)';
+                    }
+                }
+                
+                if (scrollTop > 100) {
+                    navbar.style.background = 'rgba(10, 22, 40, 0.98)';
+                    navbar.style.boxShadow = '0 5px 20px rgba(0,0,0,0.1)';
+                } else {
+                    navbar.style.background = 'rgba(10, 22, 40, 0.95)';
+                    navbar.style.boxShadow = 'none';
+                }
+                
+                lastScrollTop = scrollTop;
+                ticking = false;
+            }
+
+            window.addEventListener('scroll', function() {
+                if (!ticking) {
+                    requestAnimationFrame(updateNavbar);
+                    ticking = true;
+                }
+            });
+
+            // Close modals when clicking outside
+            document.addEventListener('click', function(event) {
+                const reviewModal = document.getElementById('reviewModal');
+                const videoModal = document.getElementById('videoModal');
+                const mobileNav = document.getElementById('mobileNav');
+                
+                if (event.target === reviewModal) {
+                    closeReviewModal();
+                }
+                if (event.target === videoModal) {
+                    closeVideoModal();
+                }
+                if (!event.target.closest('.nav-container') && !event.target.closest('.mobile-nav')) {
+                    closeMobileMenu();
+                }
+            });
+
+            // Enhanced keyboard controls
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const reviewModal = document.getElementById('reviewModal');
+                    const videoModal = document.getElementById('videoModal');
+                    
+                    if (reviewModal.style.display === 'flex') {
+                        closeReviewModal();
+                    }
+                    if (videoModal.style.display === 'flex') {
+                        closeVideoModal();
+                    }
+                    closeMobileMenu();
+                }
+                
+                // Video modal keyboard controls
+                if (document.getElementById('videoModal').style.display === 'flex') {
+                    const video = document.getElementById('modalVideo');
+                    if (event.code === 'Space') {
+                        event.preventDefault();
+                        if (video.paused) {
+                            video.play();
+                        } else {
+                            video.pause();
+                        }
+                    }
+                    if (event.key === 'ArrowLeft') {
+                        video.currentTime -= 10;
+                    }
+                    if (event.key === 'ArrowRight') {
+                        video.currentTime += 10;
+                    }
+                }
+            });
+
+            // Video modal enhancements
+            const modalVideo = document.getElementById('modalVideo');
+            const videoControls = document.getElementById('videoControls');
+            
+            modalVideo.addEventListener('loadstart', function() {
+                videoControls.style.display = 'block';
+            });
+            
+            modalVideo.addEventListener('play', function() {
+                setTimeout(() => {
+                    videoControls.style.display = 'none';
+                }, 3000);
+            });
+            
+            modalVideo.addEventListener('pause', function() {
+                videoControls.style.display = 'block';
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                closeMobileMenu();
+            });
+
+            // Handle orientation change
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    closeMobileMenu();
+                    document.body.style.height = window.innerHeight + 'px';
+                    setTimeout(() => {
+                        document.body.style.height = 'auto';
+                    }, 100);
+                }, 100);
+            });
+        }
+
+        // Go to Admin Page
+        function goToAdmin() {
+            const navbar = document.querySelector('.navbar');
+            navbar.style.transition = 'all 0.5s ease';
+            navbar.style.transform = 'scale(0.98)';
+            
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 300);
+        }
+
+        // Enhanced Video Loading and Management
+        async function loadVideos() {
+            if (!isFirebaseConnected) {
+                setupDemoVideos();
+                return;
+            }
+
+            try {
+                const videosDoc = await db.collection('settings').doc('videos').get();
+                if (videosDoc.exists) {
+                    videosData = videosDoc.data() || {};
+                }
+
+                for (let i = 1; i <= 3; i++) {
+                    await loadVideoFromStorage(i);
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل الفيديوهات:', error);
+                setupDemoVideos();
+            }
+        }
+
+        function setupDemoVideos() {
+            for (let i = 1; i <= 3; i++) {
+                const thumbnail = document.querySelector(`.video-card:nth-child(${i}) .video-thumbnail`);
+                if (thumbnail) {
+                    thumbnail.style.background = `linear-gradient(135deg, #6A0DAD, #0A1628, #D4AF37)`;
+                    
+                    const overlay = thumbnail.querySelector('.video-overlay');
+                    if (overlay) {
+                        overlay.innerHTML = `
+                            <div style="text-align: center; color: white;">
+                                <div style="font-size: 1rem; margin-bottom: 0.5rem;">قريباً</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">فيديو تفاعلي</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        async function loadVideoFromStorage(videoNumber) {
+            if (!isFirebaseConnected) return;
+
+            try {
+                const videoRef = storage.ref(`videos/video${videoNumber}.mp4`);
+                const url = await videoRef.getDownloadURL();
+                
+                const thumbnail = document.querySelector(`.video-card:nth-child(${videoNumber}) .video-thumbnail`);
+                if (thumbnail) {
+                    const videoPreview = document.createElement('video');
+                    videoPreview.className = 'video-content';
+                    videoPreview.src = url;
+                    videoPreview.muted = true;
+                    videoPreview.preload = 'metadata';
+                    
+                    thumbnail.style.background = 'transparent';
+                    thumbnail.insertBefore(videoPreview, thumbnail.firstChild);
+                    
+                    videosData[`video${videoNumber}`] = { url: url };
+                    
+                    // Only add hover effects on non-touch devices
+                    if (window.matchMedia('(hover: hover)').matches) {
+                        thumbnail.addEventListener('mouseenter', function() {
+                            videoPreview.currentTime = 1;
+                            videoPreview.play().catch(() => {
+                                videoPreview.currentTime = 1;
+                            });
+                        });
+                        
+                        thumbnail.addEventListener('mouseleave', function() {
+                            videoPreview.pause();
+                            videoPreview.currentTime = 0;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log(`Video ${videoNumber} not found in storage`);
+            }
+        }
+
+        async function loadVideoDescriptions() {
+            if (!isFirebaseConnected) return;
+
+            try {
+                const doc = await db.collection('settings').doc('videoDescriptions').get();
+                if (doc.exists) {
+                    const descriptions = doc.data();
+                    
+                    if (descriptions.video1) {
+                        document.getElementById('video1Description').textContent = descriptions.video1;
+                    }
+                    if (descriptions.video2) {
+                        document.getElementById('video2Description').textContent = descriptions.video2;
+                    }
+                    if (descriptions.video3) {
+                        document.getElementById('video3Description').textContent = descriptions.video3;
+                    }
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل أوصاف الفيديوهات:', error);
+            }
+        }
+
+        function playVideo(videoNumber) {
+            if (isFirebaseConnected && videosData[`video${videoNumber}`] && videosData[`video${videoNumber}`].url) {
+                const modal = document.getElementById('videoModal');
+                const video = document.getElementById('modalVideo');
+                
+                video.src = videosData[`video${videoNumber}`].url;
+                modal.style.display = 'flex';
+                
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.style.opacity = '1';
+                }, 10);
+                
+                video.play().catch(error => {
+                    console.log('Autoplay prevented:', error);
+                    showMessage('اضغط زر التشغيل لبدء الفيديو', 'info');
+                });
+                
+                document.body.style.overflow = 'hidden';
+            } else {
+                const videoTitles = [
+                    '🎯 تعرف على فريقنا المتميز',
+                    '⭐ قصص نجاح ملهمة', 
+                    '🔥 منهجيتنا في العمل'
+                ];
+                
+                showMessage(`سيتم إضافة فيديو: ${videoTitles[videoNumber - 1]} قريباً`, 'info');
+            }
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                video.pause();
+                video.src = '';
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }, 300);
+        }
+
+        async function loadSettings() {
+            if (!isFirebaseConnected) {
+                updateUIElements();
+                return;
+            }
+
+            try {
+                const doc = await db.collection('settings').doc('main').get();
+                if (doc.exists) {
+                    const settings = doc.data();
+                    whatsappNumber = settings.whatsappNumber || whatsappNumber;
+                    contactEmail = settings.contactEmail || contactEmail;
+                    workingHours = settings.workingHours || workingHours;
+                    officeAddress = settings.officeAddress || '';
+                    welcomeMessage = settings.welcomeMessage || welcomeMessage;
+                    
+                    updateUIElements();
+                }
+                
+                db.collection('settings').doc('main').onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const settings = doc.data();
+                        whatsappNumber = settings.whatsappNumber || whatsappNumber;
+                        contactEmail = settings.contactEmail || contactEmail;
+                        workingHours = settings.workingHours || workingHours;
+                        officeAddress = settings.officeAddress || '';
+                        welcomeMessage = settings.welcomeMessage || welcomeMessage;
+                        
+                        updateUIElements();
+                    }
+                });
+                
+            } catch (error) {
+                console.error('خطأ في تحميل الإعدادات:', error);
+                updateUIElements();
+            }
+        }
+
+        function updateUIElements() {
+            document.getElementById('footerPhone').textContent = whatsappNumber;
+            document.getElementById('footerEmail').textContent = contactEmail;
+            document.getElementById('footerWorkingHours').textContent = workingHours;
+            document.getElementById('welcomeBanner').textContent = welcomeMessage;
+            
+            const officeSection = document.getElementById('officeAddressSection');
+            const officeText = document.getElementById('officeAddressText');
+            
+            if (officeAddress && officeAddress.trim() !== '') {
+                officeText.textContent = officeAddress;
+                officeSection.style.display = 'block';
+            } else {
+                officeSection.style.display = 'none';
+            }
+        }
+
+        async function loadReviews() {
+            if (!isFirebaseConnected) {
+                loadDemoReviews();
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('reviews')
+                    .where('status', '==', 'approved')
+                    .orderBy('createdAt', 'desc')
+                    .limit(12)
+                    .get();
+
+                const reviewsContainer = document.getElementById('reviewsContainer');
+                reviewsContainer.innerHTML = '';
+
+                if (snapshot.empty) {
+                    reviewsContainer.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 2rem; grid-column: 1 / -1;">
+                            <p>لا توجد تقييمات حتى الآن. كن أول من يشارك تجربته! ⭐</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const review = doc.data();
+                    addReviewToDOM(review);
+                });
+
+            } catch (error) {
+                console.error('خطأ في تحميل التقييمات:', error);
+                loadDemoReviews();
+            }
+        }
+
+        function loadDemoReviews() {
+            const demoReviews = [
+                {
+                    name: 'أم محمد',
+                    service: 'family',
+                    rating: 5,
+                    text: 'تجربة استثنائية تفوق كل التوقعات! الاستشارة الأسرية ساعدتني في حل مشاكل كبيرة كانت تواجه عائلتي. الفريق محترف جداً ومتفهم.',
+                    initials: 'أ.م'
+                },
+                {
+                    name: 'سارة أحمد',
+                    service: 'autism',
+                    rating: 5,
+                    text: 'طفلي مصاب بالتوحد وكان الوضع صعب جداً. بعد الاستشارة وتطبيق البرنامج المخصص، لاحظت تحسن كبير في سلوكه وتفاعله.',
+                    initials: 'س.أ'
+                },
+                {
+                    name: 'محمد خالد',
+                    service: 'behavior',
+                    rating: 5,
+                    text: 'برنامج تعديل السلوك كان رائع. تعلمت طرق جديدة للتعامل مع نفسي وغيرت عادات سيئة كانت تؤثر على حياتي. شكراً لكم.',
+                    initials: 'م.خ'
+                },
+                {
+                    name: 'فاطمة علي',
+                    service: 'family',
+                    rating: 4,
+                    text: 'الاستشارة الأسرية ساعدتني كثيراً في تحسين التواصل مع أطفالي. أنصح كل أم تواجه صعوبات في التربية بالتواصل معهم.',
+                    initials: 'ف.ع'
+                },
+                {
+                    name: 'أبو أحمد',
+                    service: 'autism',
+                    rating: 5,
+                    text: 'ابني يعاني من طيف التوحد، والدكتور هنا قدم لنا برنامج فعال جداً. الآن ابني يتفاعل معنا أكثر ويظهر تحسن ملحوظ.',
+                    initials: 'أ.أ'
+                },
+                {
+                    name: 'نورا محمد',
+                    service: 'behavior',
+                    rating: 5,
+                    text: 'كانت لدي مشاكل في السلوك مع طفلي، لكن بعد جلسات تعديل السلوك أصبح أكثر هدوءاً وتعاوناً. النتائج مذهلة!',
+                    initials: 'ن.م'
+                }
+            ];
+
+            const reviewsContainer = document.getElementById('reviewsContainer');
+            reviewsContainer.innerHTML = '';
+
+            demoReviews.forEach(review => {
+                addReviewToDOM(review);
+            });
+        }
+
+        function addReviewToDOM(review, isNew = false) {
+            const serviceNames = {
+                'behavior': '🎯 تعديل السلوك',
+                'autism': '🤗 التوحد وذوي الإعاقة',
+                'family': '👨‍👩‍👧‍👦 الاستشارة الأسرية'
+            };
+
+            const starsDisplay = '⭐'.repeat(review.rating);
+            const initials = review.initials || review.name.split(' ').map(n => n.charAt(0)).join('.').toUpperCase();
+
+            const reviewCard = document.createElement('div');
+            reviewCard.className = `review-card ${isNew ? 'new-review' : ''}`;
+            
+            reviewCard.innerHTML = `
+                <div class="service-badge">${serviceNames[review.service]}</div>
+                <p class="review-text">${review.text}</p>
+                <div class="reviewer">
+                    <div class="reviewer-avatar">${initials}</div>
+                    <div class="reviewer-info">
+                        <h4>${review.name}</h4>
+                        <div class="stars">${starsDisplay}</div>
+                    </div>
+                </div>
+            `;
+
+            const reviewsContainer = document.getElementById('reviewsContainer');
+            reviewsContainer.appendChild(reviewCard);
+
+            if (isNew) {
+                reviewCard.style.opacity = '0';
+                reviewCard.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    reviewCard.style.transition = 'all 0.5s ease';
+                    reviewCard.style.opacity = '1';
+                    reviewCard.style.transform = 'translateY(0)';
+                }, 100);
+            }
+        }
+
+        async function submitReview(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('submitReviewBtn');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="loading"></div> جاري الإرسال...';
+
+                const reviewData = {
+                    name: document.getElementById('reviewerName').value.trim(),
+                    service: document.getElementById('reviewService').value,
+                    rating: parseInt(document.getElementById('rating').value),
+                    text: document.getElementById('reviewText').value.trim(),
+                    email: document.getElementById('reviewerEmail').value.trim() || null,
+                    createdAt: new Date(),
+                    status: 'pending',
+                    initials: document.getElementById('reviewerName').value.trim().split(' ').map(n => n.charAt(0)).join('.').toUpperCase()
+                };
+
+                if (!reviewData.rating) {
+                    showMessage('يرجى اختيار تقييم بالنجوم', 'error');
+                    return;
+                }
+
+                if (isFirebaseConnected) {
+                    await db.collection('reviews').add(reviewData);
+                    await sendAdminNotification('review', reviewData);
+                    showMessage('تم إرسال تقييمك بنجاح! سيظهر بعد مراجعة الإدارة ✅', 'success');
+                } else {
+                    showMessage('تم إرسال تقييمك بنجاح! سيظهر بعد مراجعة الإدارة ✅', 'success');
+                    sendWhatsAppNotification('review', reviewData);
+                }
+
+                closeReviewModal();
+
+            } catch (error) {
+                console.error('خطأ في إرسال التقييم:', error);
+                showMessage('حدث خطأ في إرسال التقييم. يرجى المحاولة مرة أخرى', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('submitContactBtn');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="loading"></div> جاري الإرسال...';
+
+                const messageData = {
+                    name: document.getElementById('name').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    service: document.getElementById('service').value,
+                    message: document.getElementById('message').value.trim(),
+                    createdAt: new Date(),
+                    status: 'new'
+                };
+
+                if (isFirebaseConnected) {
+                    await db.collection('messages').add(messageData);
+                    await sendAdminNotification('message', messageData);
+                }
+
+                sendWhatsAppMessage(messageData);
+                
+                showMessage('تم إرسال رسالتك بنجاح! سنتواصل معك قريباً ✅', 'success');
+                
+                const form = event.target;
+                form.style.opacity = '0.5';
+                setTimeout(() => {
+                    form.reset();
+                    form.style.opacity = '1';
+                }, 300);
+
+            } catch (error) {
+                console.error('خطأ في إرسال الرسالة:', error);
+                showMessage('حدث خطأ في إرسال الرسالة. يرجى المحاولة مرة أخرى', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        function sendWhatsAppMessage(messageData) {
+            const serviceNames = {
+                'behavior': '🎯 تعديل السلوك',
+                'autism': '🤗 التوحد وذوي الإعاقة',
+                'family': '👨‍👩‍👧‍👦 الاستشارة الأسرية'
+            };
+            
+            const whatsappMessage = `مرحباً، أريد التواصل معكم:\n\n` +
+                `الاسم: ${messageData.name}\n` +
+                `البريد: ${messageData.email}\n` +
+                `الهاتف: ${messageData.phone}\n` +
+                `نوع الاستشارة: ${serviceNames[messageData.service]}\n\n` +
+                `الرسالة:\n${messageData.message}`;
+            
+            const whatsappURL = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(whatsappMessage)}`;
+            
+            setTimeout(() => {
+                window.open(whatsappURL, '_blank');
+            }, 500);
+        }
+
+        function sendWhatsAppNotification(type, data) {
+            const serviceNames = {
+                'behavior': '🎯 تعديل السلوك',
+                'autism': '🤗 التوحد وذوي الإعاقة',
+                'family': '👨‍👩‍👧‍👦 الاستشارة الأسرية'
+            };
+
+            let message = '';
+            
+            if (type === 'review') {
+                message = `🌟 تقييم جديد من العميل:\n\n` +
+                    `الاسم: ${data.name}\n` +
+                    `البريد: ${data.email || 'غير محدد'}\n` +
+                    `نوع الاستشارة: ${serviceNames[data.service]}\n` +
+                    `التقييم: ${data.rating}/5 نجوم\n\n` +
+                    `التقييم:\n${data.text}`;
+            } else if (type === 'message') {
+                message = `📨 رسالة جديدة من العميل:\n\n` +
+                    `الاسم: ${data.name}\n` +
+                    `البريد: ${data.email}\n` +
+                    `الهاتف: ${data.phone}\n` +
+                    `نوع الاستشارة: ${serviceNames[data.service]}\n\n` +
+                    `الرسالة:\n${data.message}`;
+            }
+
+            const adminWhatsAppURL = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+            
+            setTimeout(() => {
+                if (confirm('هل تريد إشعار الإدارة بالرسالة الجديدة؟')) {
+                    window.open(adminWhatsAppURL, '_blank');
+                }
+            }, 1000);
+        }
+
+        async function sendAdminNotification(type, data) {
+            if (!isFirebaseConnected) return;
+
+            try {
+                await db.collection('notifications').add({
+                    type: type,
+                    data: data,
+                    createdAt: new Date(),
+                    read: false
+                });
+            } catch (error) {
+                console.error('خطأ في إرسال الإشعار:', error);
+            }
+        }
+
+        function bookService(serviceType) {
+            const serviceNames = {
+                'behavior': '🎯 تعديل السلوك',
+                'autism': '🤗 التوحد وذوي الإعاقة',
+                'family': '👨‍👩‍👧‍👦 الاستشارة الأسرية'
+            };
+            
+            const message = `مرحباً، أريد حجز موعد لـ ${serviceNames[serviceType]}\n\nالمتاح من أوقات العمل: ${workingHours}`;
+            const whatsappURL = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+        }
+
+        function openWhatsApp() {
+            const message = `مرحباً، أريد الاستفسار عن خدماتكم\n\nأوقات العمل: ${workingHours}`;
+            const whatsappURL = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+        }
+
+        function openReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            modal.style.display = 'flex';
+            modal.style.opacity = '0';
+            document.body.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                modal.style.opacity = '1';
+            }, 10);
+        }
+
+        function closeReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            modal.style.opacity = '0';
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                
+                document.getElementById('reviewForm').reset();
+                currentRating = 0;
+                document.getElementById('rating').value = '';
+                updateStars();
+            }, 300);
+        }
+
+        function setRating(rating) {
+            currentRating = rating;
+            document.getElementById('rating').value = rating;
+            updateStars();
+            
+            const stars = document.querySelectorAll('.star');
+            stars[rating - 1].style.transform = 'scale(1.3)';
+            setTimeout(() => {
+                stars[rating - 1].style.transform = 'scale(1.1)';
+            }, 150);
+        }
+
+        function updateStars() {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < currentRating) {
+                    star.classList.add('active');
+                    star.textContent = '★';
+                } else {
+                    star.classList.remove('active');
+                    star.textContent = '☆';
+                }
+            });
+        }
+
+        function showMessage(message, type = 'success') {
+            const popup = document.getElementById('messagePopup');
+            const messageSpan = document.getElementById('popupMessage');
+            
+            messageSpan.textContent = message;
+            popup.className = `message-popup ${type} show`;
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 5000);
+            
+            popup.onclick = () => {
+                popup.classList.remove('show');
+            };
+        }
+
+        function setupRealtimeUpdates() {
+            if (!isFirebaseConnected) return;
+            
+            db.collection('reviews')
+                .where('status', '==', 'approved')
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const existingReviews = document.querySelectorAll('.review-card');
+                            
+                            if (existingReviews.length > 0) {
+                                loadReviews();
+                                showMessage('تم إضافة تقييم جديد! ⭐', 'success');
+                            }
+                        }
+                    });
+                });
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFirebase();
+            
+            setTimeout(() => {
+                setupRealtimeUpdates();
+            }, 2000);
+        });
+
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    if (!video.paused) {
+                        video.pause();
+                        video.dataset.wasPlaying = 'true';
+                    }
+                });
+            } else {
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    if (video.dataset.wasPlaying === 'true') {
+                        video.play();
+                        delete video.dataset.wasPlaying;
+                    }
+                });
+                
+                if (isFirebaseConnected) {
+                    setTimeout(() => {
+                        loadSettings();
+                        loadVideoDescriptions();
+                    }, 1000);
+                }
+            }
+        });
+
+        window.addEventListener('online', function() {
+            showMessage('تم استعادة الاتصال بالإنترنت', 'success');
+            if (isFirebaseConnected) {
+                loadSettings();
+                loadReviews();
+                loadVideoDescriptions();
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            showMessage('تم فقدان الاتصال بالإنترنت', 'error');
+        });
+
+        window.addEventListener('beforeunload', function() {
+            const videos = document.querySelectorAll('video');
+            videos.forEach(video => {
+                video.pause();
+                video.src = '';
+            });
+        });
+    </script>
+</body>
+</html>

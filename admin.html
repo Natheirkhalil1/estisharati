@@ -1,0 +1,2723 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم استشارتي</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-storage-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.1.0/firebase-auth-compat.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Login Screen */
+        .login-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .login-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-box h1 {
+            color: #667eea;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+
+        #firebaseStatus {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: right;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn,
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .login-btn:hover,
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-btn:disabled,
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .dashboard-title {
+            font-size: 1.8rem;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .realtime-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #27ae60;
+            font-size: 0.9rem;
+        }
+
+        .realtime-dot {
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: #f8f9fa;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 1rem;
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            padding: 1.5rem;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Notification Badge */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-family: inherit;
+            min-width: 140px;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.8rem;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-new { background: #e8f5e8; color: #27ae60; }
+        .status-read { background: #e3f2fd; color: #2196f3; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 0.2rem;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-view { background: #3498db; color: white; }
+        .btn-view:hover { background: #2980b9; }
+        .btn-approve { background: #27ae60; color: white; }
+        .btn-approve:hover { background: #229954; }
+        .btn-reject { background: #e74c3c; color: white; }
+        .btn-reject:hover { background: #c0392b; }
+        .btn-delete { background: #e74c3c; color: white; }
+        .btn-delete:hover { background: #c0392b; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-whatsapp:hover { background: #128C7E; }
+
+        /* Videos Tab */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .video-card h4 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .video-preview {
+            width: 100%;
+            height: 180px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            border: 2px dashed #ddd;
+        }
+
+        .upload-btn {
+            width: 100%;
+            background: #27ae60;
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #229954;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-modal:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        /* Settings Form */
+        .settings-form {
+            max-width: 100%;
+        }
+
+        .save-btn {
+            background: #27ae60;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn:hover {
+            background: #229954;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 1rem;
+        }
+
+        /* Message Popup */
+        .message-popup {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            max-width: 300px;
+        }
+
+        .message-popup.show {
+            transform: translateX(0);
+        }
+
+        .message-popup.success { border-right: 4px solid #27ae60; }
+        .message-popup.error { border-right: 4px solid #e74c3c; }
+        .message-popup.info { border-right: 4px solid #3498db; }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+            
+            .video-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 0.5rem;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 1rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .tab-buttons {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                flex: 1;
+                min-width: 100px;
+                padding: 0.8rem 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            .tab-content {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.8rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .stat-label {
+                font-size: 0.9rem;
+            }
+
+            .data-table {
+                font-size: 0.8rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.5rem 0.3rem;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-select,
+            .refresh-btn {
+                width: 100%;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .video-preview {
+                height: 150px;
+            }
+
+            .modal-content {
+                margin: 0.5rem;
+                padding: 1rem;
+                max-height: 90vh;
+            }
+
+            .action-btn {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.7rem;
+                margin: 0.1rem;
+            }
+
+            .login-box {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+
+            .login-box h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 0.8rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.3rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.4rem 0.2rem;
+                font-size: 0.7rem;
+            }
+
+            .action-btn {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.65rem;
+                margin: 0.05rem;
+            }
+
+            .message-popup {
+                right: 10px;
+                max-width: calc(100vw - 20px);
+                font-size: 0.9rem;
+            }
+
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .tab-btn {
+                padding: 0.7rem 0.4rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Additional Tools Styles */
+        .additional-tools {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #eee;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tool-btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Focus styles for accessibility */
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        /* Print styles */
+        @media print {
+            .dashboard-header,
+            .tab-buttons,
+            .filter-controls,
+            .action-btn,
+            .refresh-btn {
+                display: none !important;
+            }
+            
+            .dashboard {
+                padding: 0;
+            }
+            
+            .data-table {
+                box-shadow: none;
+                border: 1px solid #333;
+            }
+        }
+
+        /* Dark mode support (optional) */
+        @media (prefers-color-scheme: dark) {
+            /* Add dark mode styles if needed */
+        }
+
+        /* Landscape tablet adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+            .stats-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            .video-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .loading-spinner {
+                border-width: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">جاري تحميل لوحة التحكم...</div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-box">
+            <h1>🔐 لوحة تحكم استشارتي</h1>
+            <div id="firebaseStatus"></div>
+            <form onsubmit="adminLogin(event)">
+                <div class="form-group">
+                    <label for="username">اسم المستخدم:</label>
+                    <input type="text" id="username" required placeholder="أدخل اسم المستخدم">
+                </div>
+                <div class="form-group">
+                    <label for="password">كلمة المرور:</label>
+                    <input type="password" id="password" required placeholder="أدخل كلمة المرور">
+                </div>
+                <button type="submit" class="login-btn" id="loginBtn">🚀 دخول</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">📊 لوحة تحكم استشارتي</h1>
+                <div class="realtime-indicator">
+                    <div class="realtime-dot"></div>
+                    <span>متصل مباشرة</span>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="adminLogout()">🚪 خروج</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="messagesCount">0</span>
+                <div class="stat-label">📨 إجمالي الرسائل</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="newMessagesCount">0</span>
+                <div class="stat-label">🆕 رسائل جديدة</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="reviewsCount">0</span>
+                <div class="stat-label">⭐ التقييمات</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="videosCount">0</span>
+                <div class="stat-label">🎥 الفيديوهات</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="avgRating">0</span>
+                <div class="stat-label">📈 متوسط التقييم</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('messages')" style="position: relative;">
+                    📨 الرسائل
+                    <span id="messagesNotification" class="notification-badge" style="display: none;">0</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('videos')">🎥 الفيديوهات</button>
+                <button class="tab-btn" onclick="showTab('reviews')" style="position: relative;">
+                    ⭐ التقييمات
+                    <span id="reviewsNotification" class="notification-badge" style="display: none;">0</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('settings')">⚙️ الإعدادات</button>
+                <button class="tab-btn" onclick="showTab('analytics')">📊 التحليلات</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Messages Tab -->
+                <div id="messagesTab" class="tab-pane active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h3>📨 إدارة الرسائل</h3>
+                        <button class="refresh-btn" onclick="loadMessages()">🔄 تحديث</button>
+                    </div>
+                    
+                    <div class="filter-controls">
+                        <select class="filter-select" onchange="filterMessages(this.value)">
+                            <option value="all">جميع الرسائل</option>
+                            <option value="new">الجديدة</option>
+                            <option value="read">المقروءة</option>
+                        </select>
+                        <select class="filter-select" onchange="filterMessagesByService(this.value)">
+                            <option value="all">جميع الخدمات</option>
+                            <option value="behavior">تعديل السلوك</option>
+                            <option value="autism">التوحد وذوي الإعاقة</option>
+                            <option value="family">الاستشارة الأسرية</option>
+                        </select>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="messagesTable">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>نوع الاستشارة</th>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesTableBody">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px;"></div>
+                                        <div>جاري تحميل الرسائل...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Videos Tab -->
+                <div id="videosTab" class="tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h3>🎥 إدارة الفيديوهات</h3>
+                        <button class="refresh-btn" onclick="loadVideos()">🔄 تحديث</button>
+                    </div>
+                    
+                    <div class="video-grid">
+                        <div class="video-card">
+                            <h4>🎯 فيديو 1: تعرف على فريقنا المتميز</h4>
+                            <div class="video-preview" id="video1Preview">
+                                <span>لا يوجد فيديو</span>
+                            </div>
+                            <input type="file" id="video1File" accept="video/*" style="display: none;" onchange="previewVideo(1)">
+                            <button class="upload-btn" onclick="document.getElementById('video1File').click()">📤 رفع فيديو جديد</button>
+                            <button class="action-btn btn-delete" onclick="deleteVideo(1)" style="width: 100%; margin-top: 0.5rem;">🗑️ حذف الفيديو</button>
+                            <div id="video1Info" style="margin-top: 1rem; font-size: 0.9rem; color: #666;"></div>
+                        </div>
+                        
+                        <div class="video-card">
+                            <h4>⭐ فيديو 2: قصص نجاح ملهمة</h4>
+                            <div class="video-preview" id="video2Preview">
+                                <span>لا يوجد فيديو</span>
+                            </div>
+                            <input type="file" id="video2File" accept="video/*" style="display: none;" onchange="previewVideo(2)">
+                            <button class="upload-btn" onclick="document.getElementById('video2File').click()">📤 رفع فيديو جديد</button>
+                            <button class="action-btn btn-delete" onclick="deleteVideo(2)" style="width: 100%; margin-top: 0.5rem;">🗑️ حذف الفيديو</button>
+                            <div id="video2Info" style="margin-top: 1rem; font-size: 0.9rem; color: #666;"></div>
+                        </div>
+                        
+                        <div class="video-card">
+                            <h4>🔥 فيديو 3: منهجيتنا في العمل</h4>
+                            <div class="video-preview" id="video3Preview">
+                                <span>لا يوجد فيديو</span>
+                            </div>
+                            <input type="file" id="video3File" accept="video/*" style="display: none;" onchange="previewVideo(3)">
+                            <button class="upload-btn" onclick="document.getElementById('video3File').click()">📤 رفع فيديو جديد</button>
+                            <button class="action-btn btn-delete" onclick="deleteVideo(3)" style="width: 100%; margin-top: 0.5rem;">🗑️ حذف الفيديو</button>
+                            <div id="video3Info" style="margin-top: 1rem; font-size: 0.9rem; color: #666;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 1.5rem; border-radius: 15px; margin-top: 1.5rem; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                        <h4>📝 تحديث أوصاف الفيديوهات</h4>
+                        <div style="margin-top: 1rem;">
+                            <div class="form-group">
+                                <label>🎯 وصف الفيديو الأول:</label>
+                                <input type="text" id="video1Description" placeholder="اكتشف خبراتنا الواسعة ومؤهلاتنا المعتمدة...">
+                            </div>
+                            <div class="form-group">
+                                <label>⭐ وصف الفيديو الثاني:</label>
+                                <input type="text" id="video2Description" placeholder="شاهد تجارب حقيقية لعملائنا وكيف غيرنا حياتهم...">
+                            </div>
+                            <div class="form-group">
+                                <label>🔥 وصف الفيديو الثالث:</label>
+                                <input type="text" id="video3Description" placeholder="تعرف على الطريقة المبتكرة التي نتبعها...">
+                            </div>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <button class="save-btn" onclick="saveVideoDescriptions()">💾 حفظ الأوصاف</button>
+                                <button class="action-btn" onclick="previewDescriptions()" style="background: #3498db; color: white; padding: 1rem 2rem; border-radius: 8px;">👁️ معاينة في الموقع</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews Tab -->
+                <div id="reviewsTab" class="tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h3>⭐ إدارة التقييمات</h3>
+                        <button class="refresh-btn" onclick="loadReviews()">🔄 تحديث</button>
+                    </div>
+                    
+                    <div class="filter-controls">
+                        <select class="filter-select" onchange="filterReviews(this.value)">
+                            <option value="all">جميع التقييمات</option>
+                            <option value="pending">في الانتظار</option>
+                            <option value="approved">مُظهرة</option>
+                            <option value="rejected">مرفوضة</option>
+                        </select>
+                        <button class="action-btn btn-approve" onclick="bulkApproveReviews()">✅ موافقة شاملة</button>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="reviewsTable">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الخدمة</th>
+                                    <th>التقييم</th>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewsTableBody">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px;"></div>
+                                        <div>جاري تحميل التقييمات...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settingsTab" class="tab-pane">
+                    <h3>⚙️ إعدادات الموقع</h3>
+                    <form class="settings-form" onsubmit="saveSettings(event)">
+                        <div class="form-group">
+                            <label>📱 رقم الواتساب:</label>
+                            <input type="tel" id="whatsappNumber" required placeholder="+962123456789">
+                        </div>
+                        <div class="form-group">
+                            <label>📧 البريد الإلكتروني:</label>
+                            <input type="email" id="contactEmail" required placeholder="info@istisharati.com">
+                        </div>
+                        <div class="form-group">
+                            <label>🏢 عنوان المكتب:</label>
+                            <input type="text" id="officeAddress" placeholder="عنوان المكتب">
+                            <small style="color: #666; font-size: 0.9rem;">سيظهر في أسفل الصفحة الرئيسية</small>
+                        </div>
+                        <div class="form-group">
+                            <label>⏰ ساعات العمل:</label>
+                            <input type="text" id="workingHours" placeholder="من 9 صباحاً إلى 6 مساءً">
+                        </div>
+                        <div class="form-group">
+                            <label>📝 رسالة ترحيبية:</label>
+                            <textarea id="welcomeMessage" rows="3" placeholder="مرحباً بكم في استشارتي..."></textarea>
+                            <small style="color: #666; font-size: 0.9rem;">ستظهر في أعلى الصفحة الرئيسية</small>
+                        </div>
+                        <button type="submit" class="save-btn" id="saveSettingsBtn">💾 حفظ الإعدادات</button>
+                    </form>
+                    
+                    <div class="additional-tools">
+                        <h4>🔧 أدوات إضافية:</h4>
+                        <div class="tools-grid">
+                            <button class="tool-btn" style="background: #3498db; color: white;" onclick="exportData()">📊 تصدير البيانات</button>
+                            <button class="tool-btn" style="background: #e67e22; color: white;" onclick="generateReport()">📈 تقرير شامل</button>
+                            <button class="tool-btn" style="background: #9b59b6; color: white;" onclick="clearOldData()">🧹 تنظيف البيانات القديمة</button>
+                            <button class="tool-btn" style="background: #27ae60; color: white;" onclick="testConnection()">🔌 اختبار الاتصال</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-pane">
+                    <h3>📊 التحليلات والإحصائيات</h3>
+                    <div id="analyticsContent">
+                        <div class="empty-state">
+                            <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px;"></div>
+                            <div>جاري تحميل التحليلات...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Detail Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📨 تفاصيل الرسالة</h3>
+                <button class="close-modal" onclick="closeModal('messageModal')">&times;</button>
+            </div>
+            <div id="messageDetails"></div>
+        </div>
+    </div>
+
+    <!-- Review Detail Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⭐ تفاصيل التقييم</h3>
+                <button class="close-modal" onclick="closeModal('reviewModal')">&times;</button>
+            </div>
+            <div id="reviewDetails"></div>
+        </div>
+    </div>
+
+    <!-- Message Popup -->
+    <div id="messagePopup" class="message-popup">
+        <span id="popupMessage"></span>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJVENqZbrfoVfVYG6cV3mM6PLWqO0HFAE",
+            authDomain: "flisten-be8e5.firebaseapp.com",
+            projectId: "flisten-be8e5",
+            storageBucket: "flisten-be8e5.firebasestorage.app",
+            messagingSenderId: "573846222027",
+            appId: "1:573846222027:web:85ecb357effec81c96174e"
+        };
+
+        // Variables
+        let db, storage, auth;
+        let isFirebaseConnected = false;
+        let currentUser = null;
+
+        // Admin credentials
+        const ADMIN_USERNAME = "admin";
+        const ADMIN_PASSWORD = "123456";
+
+        // Data stores
+        let messagesData = [];
+        let reviewsData = [];
+        let videosData = {};
+        let filteredMessages = [];
+        let filteredReviews = [];
+
+        // Real-time listeners
+        let messagesListener = null;
+        let reviewsListener = null;
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+                auth = firebase.auth();
+                
+                db.enableNetwork().then(() => {
+                    console.log('✅ تم تفعيل الشبكة');
+                    return db.collection('settings').limit(1).get();
+                }).then(() => {
+                    isFirebaseConnected = true;
+                    console.log('✅ تم الاتصال بـ Firebase بنجاح');
+                    setupRealtimeListeners();
+                    showLoginScreen();
+                }).catch((error) => {
+                    console.error('❌ خطأ في الاتصال بـ Firebase:', error);
+                    
+                    let errorMessage = 'خطأ في الاتصال بقاعدة البيانات';
+                    
+                    if (error.code === 'permission-denied') {
+                        errorMessage = '⚠️ مشكلة في صلاحيات قاعدة البيانات';
+                    } else if (error.code === 'unavailable') {
+                        errorMessage = '⚠️ قاعدة البيانات غير متاحة حالياً';
+                    }
+                    
+                    showFirebaseStatus(errorMessage + ' - يعمل في الوضع التجريبي', 'error');
+                    isFirebaseConnected = false;
+                    showLoginScreen();
+                });
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة Firebase:', error);
+                showFirebaseStatus('خطأ في تهيئة Firebase - يعمل في الوضع التجريبي', 'error');
+                isFirebaseConnected = false;
+                showLoginScreen();
+            }
+        }
+
+        function showFirebaseStatus(message, type) {
+            const statusDiv = document.getElementById('firebaseStatus');
+            statusDiv.textContent = message;
+            statusDiv.style.background = type === 'success' ? '#d4edda' : '#f8d7da';
+            statusDiv.style.color = type === 'success' ? '#155724' : '#721c24';
+            statusDiv.style.border = `1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'}`;
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'flex';
+        }
+
+        // Setup Real-time Listeners
+        function setupRealtimeListeners() {
+            if (!isFirebaseConnected) return;
+
+            messagesListener = db.collection('messages')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    messagesData = [];
+                    snapshot.forEach(doc => {
+                        messagesData.push({ id: doc.id, ...doc.data() });
+                    });
+                    filteredMessages = [...messagesData];
+                    displayMessages();
+                    updateStats();
+                    updateNotifications();
+                });
+
+            reviewsListener = db.collection('reviews')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    reviewsData = [];
+                    snapshot.forEach(doc => {
+                        reviewsData.push({ id: doc.id, ...doc.data() });
+                    });
+                    filteredReviews = [...reviewsData];
+                    displayReviews();
+                    updateStats();
+                    updateNotifications();
+                });
+        }
+
+        // Login function
+        async function adminLogin(event) {
+            event.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'جاري تسجيل الدخول...';
+            
+            try {
+                if (isFirebaseConnected) {
+                    try {
+                        await auth.signInWithEmailAndPassword(username, password);
+                        currentUser = auth.currentUser;
+                        showDashboard();
+                    } catch (authError) {
+                        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                            showDashboard();
+                        } else {
+                            throw new Error('بيانات الدخول غير صحيحة');
+                        }
+                    }
+                } else {
+                    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                        showDashboard();
+                    } else {
+                        throw new Error('بيانات الدخول غير صحيحة');
+                    }
+                }
+            } catch (error) {
+                showMessage(error.message || 'خطأ في تسجيل الدخول', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '🚀 دخول';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            showMessage('تم تسجيل الدخول بنجاح! ✅', 'success');
+            
+            if (isFirebaseConnected) {
+                loadSettings();
+                loadVideos();
+            } else {
+                loadDemoData();
+            }
+        }
+
+        // Logout function
+        async function adminLogout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                try {
+                    if (isFirebaseConnected && auth.currentUser) {
+                        await auth.signOut();
+                    }
+                    
+                    if (messagesListener) messagesListener();
+                    if (reviewsListener) reviewsListener();
+                    
+                    document.getElementById('loginContainer').style.display = 'flex';
+                    document.getElementById('dashboard').style.display = 'none';
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    
+                } catch (error) {
+                    console.error('خطأ في تسجيل الخروج:', error);
+                }
+            }
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-pane');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'analytics') {
+                loadAnalytics();
+            } else if (tabName === 'videos') {
+                loadVideos();
+            }
+        }
+
+        // Load Messages
+        async function loadMessages() {
+            const tbody = document.getElementById('messagesTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px;"></div>
+                        <div>جاري تحديث الرسائل...</div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                if (!isFirebaseConnected) {
+                    addDemoMessage();
+                    displayMessages();
+                    updateStats();
+                    showMessage('تم تحديث الرسائل (وضع تجريبي)', 'success');
+                    return;
+                }
+
+                const snapshot = await db.collection('messages')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                messagesData = [];
+                snapshot.forEach(doc => {
+                    messagesData.push({ id: doc.id, ...doc.data() });
+                });
+
+                filteredMessages = [...messagesData];
+                displayMessages();
+                updateStats();
+                updateNotifications();
+                
+                showMessage(`تم تحديث ${messagesData.length} رسالة بنجاح`, 'success');
+
+            } catch (error) {
+                console.error('خطأ في تحديث الرسائل:', error);
+                showMessage('خطأ في تحديث الرسائل', 'error');
+                loadDemoMessages();
+            }
+        }
+
+        // Load Reviews
+        async function loadReviews() {
+            const tbody = document.getElementById('reviewsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px;"></div>
+                        <div>جاري تحديث التقييمات...</div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                if (!isFirebaseConnected) {
+                    addDemoReview();
+                    displayReviews();
+                    updateStats();
+                    showMessage('تم تحديث التقييمات (وضع تجريبي)', 'success');
+                    return;
+                }
+
+                const snapshot = await db.collection('reviews')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                reviewsData = [];
+                snapshot.forEach(doc => {
+                    reviewsData.push({ id: doc.id, ...doc.data() });
+                });
+
+                filteredReviews = [...reviewsData];
+                displayReviews();
+                updateStats();
+                updateNotifications();
+                
+                showMessage(`تم تحديث ${reviewsData.length} تقييم بنجاح`, 'success');
+
+            } catch (error) {
+                console.error('خطأ في تحديث التقييمات:', error);
+                showMessage('خطأ في تحديث التقييمات', 'error');
+                loadDemoReviews();
+            }
+        }
+
+        // Load Videos
+        async function loadVideos() {
+            try {
+                if (isFirebaseConnected) {
+                    const videosDoc = await db.collection('settings').doc('videos').get();
+                    if (videosDoc.exists) {
+                        videosData = videosDoc.data() || {};
+                    }
+                    
+                    loadVideoDescriptions();
+                    
+                    for (let i = 1; i <= 3; i++) {
+                        checkVideoInStorage(i);
+                    }
+                } else {
+                    loadVideosFromLocal();
+                }
+                
+                showMessage('تم تحديث الفيديوهات بنجاح', 'success');
+            } catch (error) {
+                console.error('خطأ في تحميل الفيديوهات:', error);
+                showMessage('خطأ في تحميل الفيديوهات', 'error');
+                loadVideosFromLocal();
+            }
+        }
+
+        // Demo Data Functions
+        function loadDemoData() {
+            loadDemoMessages();
+            loadDemoReviews();
+            loadVideos();
+        }
+
+        function loadDemoMessages() {
+            messagesData = [
+                {
+                    id: '1',
+                    name: 'أحمد محمد',
+                    email: 'ahmed@example.com',
+                    phone: '+962781234567',
+                    service: 'behavior',
+                    message: 'أريد استشارة لطفلي الذي يعاني من مشاكل سلوكية',
+                    createdAt: { toDate: () => new Date() },
+                    status: 'new'
+                },
+                {
+                    id: '2',
+                    name: 'فاطمة أحمد',
+                    email: 'fatima@example.com',
+                    phone: '+962791234567',
+                    service: 'autism',
+                    message: 'ابني مشخص بالتوحد وأحتاج مساعدة في التعامل معه',
+                    createdAt: { toDate: () => new Date(Date.now() - 24*60*60*1000) },
+                    status: 'read'
+                }
+            ];
+            filteredMessages = [...messagesData];
+            displayMessages();
+            updateStats();
+        }
+
+        function loadDemoReviews() {
+            reviewsData = [
+                {
+                    id: '1',
+                    name: 'سارة محمد',
+                    service: 'family',
+                    rating: 5,
+                    text: 'خدمة ممتازة وفريق محترف جداً',
+                    createdAt: { toDate: () => new Date() },
+                    status: 'pending'
+                },
+                {
+                    id: '2',
+                    name: 'محمد أحمد',
+                    service: 'behavior',
+                    rating: 4,
+                    text: 'ساعدني كثيراً في حل مشاكل طفلي',
+                    createdAt: { toDate: () => new Date(Date.now() - 24*60*60*1000) },
+                    status: 'approved'
+                }
+            ];
+            filteredReviews = [...reviewsData];
+            displayReviews();
+        }
+
+        function addDemoMessage() {
+            const demoMessages = [
+                {
+                    name: 'زينب محمد',
+                    email: 'zeinab@example.com',
+                    phone: '+962701234567',
+                    service: 'family',
+                    message: 'أحتاج استشارة عائلية لحل بعض المشاكل'
+                },
+                {
+                    name: 'عمر أحمد',
+                    email: 'omar@example.com',
+                    phone: '+962791234567',
+                    service: 'behavior',
+                    message: 'طفلي يحتاج برنامج تعديل سلوك'
+                }
+            ];
+
+            const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
+            const newMessage = {
+                id: Date.now().toString(),
+                ...randomMessage,
+                createdAt: { toDate: () => new Date() },
+                status: 'new'
+            };
+
+            messagesData.unshift(newMessage);
+            if (filteredMessages === messagesData || filteredMessages.length === 0) {
+                filteredMessages.unshift(newMessage);
+            }
+            
+            displayMessages();
+            updateStats();
+            updateNotifications();
+        }
+
+        function addDemoReview() {
+            const demoReviews = [
+                {
+                    name: 'ليلى أحمد',
+                    service: 'autism',
+                    rating: 5,
+                    text: 'خدمة رائعة ومتميزة'
+                },
+                {
+                    name: 'خالد محمد',
+                    service: 'family',
+                    rating: 4,
+                    text: 'استفدت كثيراً من الاستشارة'
+                }
+            ];
+
+            const randomReview = demoReviews[Math.floor(Math.random() * demoReviews.length)];
+            const newReview = {
+                id: Date.now().toString(),
+                ...randomReview,
+                createdAt: { toDate: () => new Date() },
+                status: 'pending'
+            };
+
+            reviewsData.unshift(newReview);
+            if (filteredReviews === reviewsData || filteredReviews.length === 0) {
+                filteredReviews.unshift(newReview);
+            }
+            
+            displayReviews();
+            updateStats();
+            updateNotifications();
+        }
+
+        // Display Functions
+        function displayMessages() {
+            const tbody = document.getElementById('messagesTableBody');
+            tbody.innerHTML = '';
+            
+            if (filteredMessages.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <h3>📭 لا توجد رسائل</h3>
+                            <p>لم يتم العثور على رسائل مطابقة للفلترة المحددة</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            filteredMessages.forEach(message => {
+                const row = document.createElement('tr');
+                const date = message.createdAt?.toDate ? message.createdAt.toDate() : new Date();
+                
+                row.innerHTML = `
+                    <td>${message.name}</td>
+                    <td>${message.email}</td>
+                    <td>${serviceNames[message.service] || message.service}</td>
+                    <td>${formatDate(date)}</td>
+                    <td>
+                        <span class="status-badge status-${message.status}">
+                            ${message.status === 'new' ? 'جديد' : 'مقروء'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn btn-view" onclick="viewMessage('${message.id}')">👁️ عرض</button>
+                        <button class="action-btn btn-whatsapp" onclick="replyWhatsApp('${message.phone}')">📱 رد</button>
+                        <button class="action-btn btn-delete" onclick="deleteMessage('${message.id}')">🗑️ حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function displayReviews() {
+            const tbody = document.getElementById('reviewsTableBody');
+            tbody.innerHTML = '';
+            
+            if (filteredReviews.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <h3>⭐ لا توجد تقييمات</h3>
+                            <p>لم يتم العثور على تقييمات مطابقة للفلترة المحددة</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            filteredReviews.forEach(review => {
+                const row = document.createElement('tr');
+                const date = review.createdAt?.toDate ? review.createdAt.toDate() : new Date();
+                const stars = '⭐'.repeat(review.rating);
+                
+                row.innerHTML = `
+                    <td>${review.name}</td>
+                    <td>${serviceNames[review.service] || review.service}</td>
+                    <td>${stars} (${review.rating})</td>
+                    <td>${formatDate(date)}</td>
+                    <td>
+                        <span class="status-badge status-${review.status}">
+                            ${getReviewStatusText(review.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn btn-view" onclick="viewReview('${review.id}')">👁️ عرض</button>
+                        ${review.status === 'pending' ? `
+                            <button class="action-btn btn-approve" onclick="approveReview('${review.id}')">✅ موافقة</button>
+                            <button class="action-btn btn-reject" onclick="rejectReview('${review.id}')">❌ رفض</button>
+                        ` : review.status === 'approved' ? `
+                            <button class="action-btn btn-reject" onclick="rejectReview('${review.id}')">👁️ إخفاء</button>
+                        ` : `
+                            <button class="action-btn btn-approve" onclick="approveReview('${review.id}')">✅ إظهار</button>
+                        `}
+                        <button class="action-btn btn-delete" onclick="deleteReview('${review.id}')">🗑️ حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // View Message Details
+        function viewMessage(messageId) {
+            const message = messagesData.find(m => m.id === messageId);
+            if (!message) return;
+
+            const date = message.createdAt?.toDate ? message.createdAt.toDate() : new Date();
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            document.getElementById('messageDetails').innerHTML = `
+                <div style="line-height: 2;">
+                    <p><strong>الاسم:</strong> ${message.name}</p>
+                    <p><strong>البريد الإلكتروني:</strong> ${message.email}</p>
+                    <p><strong>رقم الهاتف:</strong> ${message.phone}</p>
+                    <p><strong>نوع الاستشارة:</strong> ${serviceNames[message.service]}</p>
+                    <p><strong>التاريخ:</strong> ${formatDate(date)}</p>
+                    <hr style="margin: 1rem 0;">
+                    <p><strong>الرسالة:</strong></p>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 0.5rem; white-space: pre-wrap;">${message.message}</div>
+                </div>
+                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="action-btn btn-whatsapp" onclick="replyWhatsApp('${message.phone}')">📱 الرد عبر واتساب</button>
+                    ${message.status === 'new' ? `
+                        <button class="action-btn btn-view" onclick="markAsRead('${message.id}')">✅ تحديد كمقروء</button>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('messageModal').style.display = 'flex';
+        }
+
+        // View Review Details
+        function viewReview(reviewId) {
+            const review = reviewsData.find(r => r.id === reviewId);
+            if (!review) return;
+
+            const date = review.createdAt?.toDate ? review.createdAt.toDate() : new Date();
+            const stars = '⭐'.repeat(review.rating);
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            document.getElementById('reviewDetails').innerHTML = `
+                <div style="line-height: 2;">
+                    <p><strong>الاسم:</strong> ${review.name}</p>
+                    <p><strong>البريد الإلكتروني:</strong> ${review.email || 'غير محدد'}</p>
+                    <p><strong>نوع الاستشارة:</strong> ${serviceNames[review.service]}</p>
+                    <p><strong>التقييم:</strong> ${stars} (${review.rating}/5)</p>
+                    <p><strong>التاريخ:</strong> ${formatDate(date)}</p>
+                    <p><strong>الحالة:</strong> ${getReviewStatusText(review.status)}</p>
+                    <hr style="margin: 1rem 0;">
+                    <p><strong>نص التقييم:</strong></p>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 0.5rem; white-space: pre-wrap;">${review.text}</div>
+                </div>
+                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    ${review.status === 'pending' ? `
+                        <button class="action-btn btn-approve" onclick="approveReview('${review.id}'); closeModal('reviewModal')">✅ موافقة</button>
+                        <button class="action-btn btn-reject" onclick="rejectReview('${review.id}'); closeModal('reviewModal')">❌ رفض</button>
+                    ` : review.status === 'approved' ? `
+                        <button class="action-btn btn-reject" onclick="rejectReview('${review.id}'); closeModal('reviewModal')">👁️ إخفاء</button>
+                    ` : `
+                        <button class="action-btn btn-approve" onclick="approveReview('${review.id}'); closeModal('reviewModal')">✅ إظهار</button>
+                    `}
+                </div>
+            `;
+            
+            document.getElementById('reviewModal').style.display = 'flex';
+        }
+
+        // Action Functions
+        async function markAsRead(messageId) {
+            try {
+                if (isFirebaseConnected) {
+                    await db.collection('messages').doc(messageId).update({
+                        status: 'read',
+                        readAt: new Date()
+                    });
+                } else {
+                    const message = messagesData.find(m => m.id === messageId);
+                    if (message) {
+                        message.status = 'read';
+                        displayMessages();
+                        updateStats();
+                    }
+                }
+                
+                showMessage('تم تحديد الرسالة كمقروءة', 'success');
+                closeModal('messageModal');
+            } catch (error) {
+                console.error('خطأ في تحديث حالة الرسالة:', error);
+                showMessage('خطأ في تحديث حالة الرسالة', 'error');
+            }
+        }
+
+        async function approveReview(reviewId) {
+            try {
+                if (isFirebaseConnected) {
+                    await db.collection('reviews').doc(reviewId).update({
+                        status: 'approved',
+                        approvedAt: new Date()
+                    });
+                } else {
+                    const review = reviewsData.find(r => r.id === reviewId);
+                    if (review) {
+                        review.status = 'approved';
+                        displayReviews();
+                        updateStats();
+                    }
+                }
+                
+                showMessage('تم الموافقة على التقييم', 'success');
+            } catch (error) {
+                console.error('خطأ في الموافقة على التقييم:', error);
+                showMessage('خطأ في الموافقة على التقييم', 'error');
+            }
+        }
+
+        async function rejectReview(reviewId) {
+            try {
+                if (isFirebaseConnected) {
+                    await db.collection('reviews').doc(reviewId).update({
+                        status: 'rejected',
+                        rejectedAt: new Date()
+                    });
+                } else {
+                    const review = reviewsData.find(r => r.id === reviewId);
+                    if (review) {
+                        review.status = 'rejected';
+                        displayReviews();
+                        updateStats();
+                    }
+                }
+                
+                showMessage('تم رفض التقييم', 'success');
+            } catch (error) {
+                console.error('خطأ في رفض التقييم:', error);
+                showMessage('خطأ في رفض التقييم', 'error');
+            }
+        }
+
+        async function deleteMessage(messageId) {
+            if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟')) return;
+
+            try {
+                if (isFirebaseConnected) {
+                    await db.collection('messages').doc(messageId).delete();
+                } else {
+                    messagesData = messagesData.filter(m => m.id !== messageId);
+                    filteredMessages = filteredMessages.filter(m => m.id !== messageId);
+                    displayMessages();
+                    updateStats();
+                }
+                
+                showMessage('تم حذف الرسالة بنجاح', 'success');
+            } catch (error) {
+                console.error('خطأ في حذف الرسالة:', error);
+                showMessage('خطأ في حذف الرسالة', 'error');
+            }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm('هل أنت متأكد من حذف هذا التقييم؟')) return;
+
+            try {
+                if (isFirebaseConnected) {
+                    await db.collection('reviews').doc(reviewId).delete();
+                } else {
+                    reviewsData = reviewsData.filter(r => r.id !== reviewId);
+                    filteredReviews = filteredReviews.filter(r => r.id !== reviewId);
+                    displayReviews();
+                    updateStats();
+                }
+                
+                showMessage('تم حذف التقييم بنجاح', 'success');
+            } catch (error) {
+                console.error('خطأ في حذف التقييم:', error);
+                showMessage('خطأ في حذف التقييم', 'error');
+            }
+        }
+
+        function replyWhatsApp(phone) {
+            const message = `مرحباً، شكراً لتواصلك معنا من خلال موقع استشارتي. سنكون سعداء لمساعدتك.`;
+            const whatsappURL = `https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+        }
+
+        // Filter Functions
+        function filterMessages(status) {
+            if (status === 'all') {
+                filteredMessages = [...messagesData];
+            } else {
+                filteredMessages = messagesData.filter(m => m.status === status);
+            }
+            displayMessages();
+        }
+
+        function filterMessagesByService(service) {
+            if (service === 'all') {
+                filteredMessages = [...messagesData];
+            } else {
+                filteredMessages = messagesData.filter(m => m.service === service);
+            }
+            displayMessages();
+        }
+
+        function filterReviews(status) {
+            if (status === 'all') {
+                filteredReviews = [...reviewsData];
+            } else {
+                filteredReviews = reviewsData.filter(r => r.status === status);
+            }
+            displayReviews();
+        }
+
+        // Bulk Operations
+        async function bulkApproveReviews() {
+            if (!confirm('هل أنت متأكد من الموافقة على جميع التقييمات المعلقة؟')) return;
+
+            try {
+                const pendingReviews = reviewsData.filter(r => r.status === 'pending');
+                
+                if (pendingReviews.length === 0) {
+                    showMessage('لا توجد تقييمات معلقة للموافقة عليها', 'info');
+                    return;
+                }
+                
+                if (isFirebaseConnected) {
+                    const batch = db.batch();
+                    pendingReviews.forEach(review => {
+                        const reviewRef = db.collection('reviews').doc(review.id);
+                        batch.update(reviewRef, { status: 'approved', approvedAt: new Date() });
+                    });
+                    await batch.commit();
+                } else {
+                    pendingReviews.forEach(review => {
+                        review.status = 'approved';
+                    });
+                    displayReviews();
+                    updateStats();
+                }
+                
+                showMessage(`تم الموافقة على ${pendingReviews.length} تقييم`, 'success');
+            } catch (error) {
+                console.error('خطأ في الموافقة الشاملة:', error);
+                showMessage('خطأ في الموافقة الشاملة', 'error');
+            }
+        }
+
+        // Settings Functions
+        async function loadSettings() {
+            if (!isFirebaseConnected) return;
+
+            try {
+                const doc = await db.collection('settings').doc('main').get();
+                if (doc.exists) {
+                    const settings = doc.data();
+                    document.getElementById('whatsappNumber').value = settings.whatsappNumber || '';
+                    document.getElementById('contactEmail').value = settings.contactEmail || '';
+                    document.getElementById('officeAddress').value = settings.officeAddress || '';
+                    document.getElementById('workingHours').value = settings.workingHours || '';
+                    document.getElementById('welcomeMessage').value = settings.welcomeMessage || '';
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل الإعدادات:', error);
+            }
+        }
+
+        async function saveSettings(event) {
+            event.preventDefault();
+            
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            const originalText = saveBtn.textContent;
+            
+            try {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'جاري الحفظ...';
+
+                const settings = {
+                    whatsappNumber: document.getElementById('whatsappNumber').value,
+                    contactEmail: document.getElementById('contactEmail').value,
+                    officeAddress: document.getElementById('officeAddress').value,
+                    workingHours: document.getElementById('workingHours').value,
+                    welcomeMessage: document.getElementById('welcomeMessage').value,
+                    updatedAt: new Date()
+                };
+
+                if (isFirebaseConnected) {
+                    await db.collection('settings').doc('main').set(settings, { merge: true });
+                }
+                
+                showMessage('تم حفظ الإعدادات بنجاح! ✅', 'success');
+            } catch (error) {
+                console.error('خطأ في حفظ الإعدادات:', error);
+                showMessage('خطأ في حفظ الإعدادات', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
+
+        // Video Functions
+        function loadVideosFromLocal() {
+            for (let i = 1; i <= 3; i++) {
+                const videoData = localStorage.getItem(`video${i}Data`);
+                if (videoData) {
+                    const data = JSON.parse(videoData);
+                    displayVideoPreview(i, data);
+                }
+            }
+            loadVideoDescriptions();
+        }
+
+        async function checkVideoInStorage(videoNumber) {
+            if (!isFirebaseConnected) return;
+            
+            try {
+                const videoRef = storage.ref(`videos/video${videoNumber}.mp4`);
+                const url = await videoRef.getDownloadURL();
+                
+                const preview = document.getElementById(`video${videoNumber}Preview`);
+                preview.innerHTML = `
+                    <video width="100%" height="100%" controls style="border-radius: 8px;">
+                        <source src="${url}" type="video/mp4">
+                        متصفحك لا يدعم تشغيل الفيديوهات
+                    </video>
+                `;
+                
+                const metadata = await videoRef.getMetadata();
+                document.getElementById(`video${videoNumber}Info`).innerHTML = `
+                    <strong>📄 معلومات الفيديو:</strong><br>
+                    📏 الحجم: ${formatFileSize(metadata.size)}<br>
+                    📅 تم الرفع: ${formatDate(new Date(metadata.timeCreated))}
+                `;
+                
+            } catch (error) {
+                const preview = document.getElementById(`video${videoNumber}Preview`);
+                preview.innerHTML = '<span>لا يوجد فيديو</span>';
+                document.getElementById(`video${videoNumber}Info`).innerHTML = '';
+            }
+        }
+
+        async function previewVideo(videoNumber) {
+            const fileInput = document.getElementById(`video${videoNumber}File`);
+            const preview = document.getElementById(`video${videoNumber}Preview`);
+            const infoDiv = document.getElementById(`video${videoNumber}Info`);
+            
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                
+                if (!file.type.startsWith('video/')) {
+                    showMessage('يرجى اختيار ملف فيديو صالح', 'error');
+                    return;
+                }
+                
+                if (file.size > 100 * 1024 * 1024) {
+                    showMessage('حجم الفيديو كبير جداً. الحد الأقصى 100 ميجابايت', 'error');
+                    return;
+                }
+                
+                preview.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <div class="loading-spinner"></div>
+                        <span>جاري رفع الفيديو...</span>
+                    </div>
+                `;
+                
+                try {
+                    if (isFirebaseConnected) {
+                        await uploadVideoToFirebase(videoNumber, file);
+                    } else {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.innerHTML = `
+                                <video width="100%" height="100%" controls style="border-radius: 8px;">
+                                    <source src="${e.target.result}" type="video/mp4">
+                                </video>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                        
+                        const videoData = {
+                            number: videoNumber,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            uploaded: new Date().toISOString()
+                        };
+                        localStorage.setItem(`video${videoNumber}Data`, JSON.stringify(videoData));
+                    }
+                    
+                    infoDiv.innerHTML = `
+                        <strong>📄 معلومات الفيديو:</strong><br>
+                        📝 اسم الملف: ${file.name}<br>
+                        📏 الحجم: ${formatFileSize(file.size)}<br>
+                        📅 تم الرفع: ${formatDate(new Date())}
+                    `;
+                    
+                    showMessage(`تم رفع الفيديو ${videoNumber} بنجاح! ✅`, 'success');
+                    updateStats();
+                    
+                } catch (error) {
+                    console.error('خطأ في رفع الفيديو:', error);
+                    preview.innerHTML = '<span style="color: #e74c3c;">خطأ في رفع الفيديو</span>';
+                    showMessage('خطأ في رفع الفيديو. يرجى المحاولة مرة أخرى', 'error');
+                }
+            }
+        }
+
+        async function uploadVideoToFirebase(videoNumber, file) {
+            const videoRef = storage.ref(`videos/video${videoNumber}.mp4`);
+            const uploadTask = videoRef.put(file);
+            
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        const preview = document.getElementById(`video${videoNumber}Preview`);
+                        preview.innerHTML = `
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                <div class="loading-spinner"></div>
+                                <span>جاري الرفع: ${Math.round(progress)}%</span>
+                                <div style="width: 100%; background: #f0f0f0; border-radius: 10px; height: 10px;">
+                                    <div style="width: ${progress}%; background: #27ae60; height: 100%; border-radius: 10px; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        `;
+                    },
+                    (error) => {
+                        console.error('خطأ في رفع الفيديو:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            
+                            const preview = document.getElementById(`video${videoNumber}Preview`);
+                            preview.innerHTML = `
+                                <video width="100%" height="100%" controls style="border-radius: 8px;">
+                                    <source src="${downloadURL}" type="video/mp4">
+                                    متصفحك لا يدعم تشغيل الفيديوهات
+                                </video>
+                            `;
+                            
+                            await db.collection('settings').doc('videos').set({
+                                [`video${videoNumber}`]: {
+                                    url: downloadURL,
+                                    filename: file.name,
+                                    size: file.size,
+                                    uploadedAt: new Date(),
+                                    type: file.type
+                                }
+                            }, { merge: true });
+                            
+                            resolve(downloadURL);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
+        }
+
+        async function deleteVideo(videoNumber) {
+            if (!confirm(`هل أنت متأكد من حذف الفيديو ${videoNumber}؟`)) return;
+            
+            try {
+                const preview = document.getElementById(`video${videoNumber}Preview`);
+                const infoDiv = document.getElementById(`video${videoNumber}Info`);
+                
+                if (isFirebaseConnected) {
+                    try {
+                        const videoRef = storage.ref(`videos/video${videoNumber}.mp4`);
+                        await videoRef.delete();
+                    } catch (error) {
+                        if (error.code !== 'storage/object-not-found') {
+                            throw error;
+                        }
+                    }
+                    
+                    await db.collection('settings').doc('videos').update({
+                        [`video${videoNumber}`]: firebase.firestore.FieldValue.delete()
+                    });
+                } else {
+                    localStorage.removeItem(`video${videoNumber}Data`);
+                }
+                
+                preview.innerHTML = '<span>لا يوجد فيديو</span>';
+                infoDiv.innerHTML = '';
+                document.getElementById(`video${videoNumber}File`).value = '';
+                
+                showMessage(`تم حذف الفيديو ${videoNumber} بنجاح!`, 'success');
+                updateStats();
+                
+            } catch (error) {
+                console.error('خطأ في حذف الفيديو:', error);
+                showMessage('خطأ في حذف الفيديو', 'error');
+            }
+        }
+
+        async function loadVideoDescriptions() {
+            try {
+                if (isFirebaseConnected) {
+                    const doc = await db.collection('settings').doc('videoDescriptions').get();
+                    if (doc.exists) {
+                        const descriptions = doc.data();
+                        document.getElementById('video1Description').value = descriptions.video1 || '';
+                        document.getElementById('video2Description').value = descriptions.video2 || '';
+                        document.getElementById('video3Description').value = descriptions.video3 || '';
+                    }
+                } else {
+                    document.getElementById('video1Description').value = localStorage.getItem('video1Description') || '';
+                    document.getElementById('video2Description').value = localStorage.getItem('video2Description') || '';
+                    document.getElementById('video3Description').value = localStorage.getItem('video3Description') || '';
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل أوصاف الفيديوهات:', error);
+            }
+        }
+
+        async function saveVideoDescriptions() {
+            const saveBtn = event.target;
+            const originalText = saveBtn.textContent;
+            
+            try {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'جاري الحفظ...';
+                
+                const descriptions = {
+                    video1: document.getElementById('video1Description').value,
+                    video2: document.getElementById('video2Description').value,
+                    video3: document.getElementById('video3Description').value,
+                    updatedAt: new Date()
+                };
+                
+                if (isFirebaseConnected) {
+                    await db.collection('settings').doc('videoDescriptions').set(descriptions, { merge: true });
+                } else {
+                    localStorage.setItem('video1Description', descriptions.video1);
+                    localStorage.setItem('video2Description', descriptions.video2);
+                    localStorage.setItem('video3Description', descriptions.video3);
+                }
+                
+                showMessage('تم حفظ أوصاف الفيديوهات بنجاح! ✅', 'success');
+                
+            } catch (error) {
+                console.error('خطأ في حفظ الأوصاف:', error);
+                showMessage('خطأ في حفظ الأوصاف', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
+
+        function displayVideoPreview(videoNumber, data) {
+            const infoDiv = document.getElementById(`video${videoNumber}Info`);
+            infoDiv.innerHTML = `
+                <strong>📄 معلومات الفيديو:</strong><br>
+                📝 اسم الملف: ${data.name}<br>
+                📏 الحجم: ${formatFileSize(data.size)}<br>
+                📅 تم الرفع: ${formatDate(new Date(data.uploaded))}
+            `;
+        }
+
+        function previewDescriptions() {
+            const descriptions = {
+                video1: document.getElementById('video1Description').value || 'اكتشف خبراتنا الواسعة ومؤهلاتنا المعتمدة في مجال الاستشارة المتخصصة',
+                video2: document.getElementById('video2Description').value || 'شاهد تجارب حقيقية لعملائنا وكيف غيرنا حياتهم للأفضل',
+                video3: document.getElementById('video3Description').value || 'تعرف على الطريقة المبتكرة التي نتبعها في الاستشارة'
+            };
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 1rem;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 20px; padding: 2rem; max-width: 90%; max-height: 90%; overflow-y: auto; position: relative;">
+                    <button onclick="this.closest('div').remove()" style="position: absolute; top: 15px; left: 15px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                    <h3 style="text-align: center; margin-bottom: 2rem; color: #333;">👁️ معاينة أوصاف الفيديوهات</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <div style="background: #f8f9fa; border-radius: 15px; padding: 1.5rem; border: 2px solid #D4AF37;">
+                            <h4 style="color: #667eea; margin-bottom: 1rem;">🎯 الفيديو الأول</h4>
+                            <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #6A0DAD, #0A1628, #D4AF37); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #6A0DAD;">▶</div>
+                            </div>
+                            <h5 style="margin-bottom: 0.5rem;">🎯 تعرف على فريقنا المتميز</h5>
+                            <p style="color: #666; line-height: 1.6;">${descriptions.video1}</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; border-radius: 15px; padding: 1.5rem; border: 2px solid #D4AF37;">
+                            <h4 style="color: #667eea; margin-bottom: 1rem;">⭐ الفيديو الثاني</h4>
+                            <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #6A0DAD, #0A1628, #D4AF37); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #6A0DAD;">▶</div>
+                            </div>
+                            <h5 style="margin-bottom: 0.5rem;">⭐ قصص نجاح ملهمة</h5>
+                            <p style="color: #666; line-height: 1.6;">${descriptions.video2}</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; border-radius: 15px; padding: 1.5rem; border: 2px solid #D4AF37;">
+                            <h4 style="color: #667eea; margin-bottom: 1rem;">🔥 الفيديو الثالث</h4>
+                            <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #6A0DAD, #0A1628, #D4AF37); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #6A0DAD;">▶</div>
+                            </div>
+                            <h5 style="margin-bottom: 0.5rem;">🔥 منهجيتنا في العمل</h5>
+                            <p style="color: #666; line-height: 1.6;">${descriptions.video3}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <button onclick="this.closest('div').remove()" style="background: #667eea; color: white; padding: 1rem 2rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 600;">إغلاق المعاينة</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            document.body.appendChild(modal);
+        }
+
+        // Analytics Functions
+        function loadAnalytics() {
+            const analyticsContent = document.getElementById('analyticsContent');
+            
+            const totalMessages = messagesData.length;
+            const newMessages = messagesData.filter(m => m.status === 'new').length;
+            const totalReviews = reviewsData.length;
+            const approvedReviews = reviewsData.filter(r => r.status === 'approved').length;
+            const avgRating = reviewsData.length > 0 ? 
+                (reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length).toFixed(1) : 0;
+
+            const serviceCount = messagesData.reduce((acc, message) => {
+                acc[message.service] = (acc[message.service] || 0) + 1;
+                return acc;
+            }, {});
+
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            analyticsContent.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-number">${totalMessages}</span>
+                        <div class="stat-label">إجمالي الرسائل</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${newMessages}</span>
+                        <div class="stat-label">رسائل جديدة</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${approvedReviews}/${totalReviews}</span>
+                        <div class="stat-label">تقييمات مُظهرة</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${avgRating}</span>
+                        <div class="stat-label">متوسط التقييم</div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; margin-top: 1.5rem; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <h4>📊 توزيع الرسائل حسب نوع الخدمة</h4>
+                    <div style="margin-top: 1rem;">
+                        ${Object.entries(serviceCount).map(([service, count]) => `
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <span>${serviceNames[service] || service}</span>
+                                <strong>${count} رسالة</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; margin-top: 1.5rem; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <h4>⭐ توزيع التقييمات</h4>
+                    <div style="margin-top: 1rem;">
+                        ${[5,4,3,2,1].map(rating => {
+                            const count = reviewsData.filter(r => r.rating === rating).length;
+                            const percentage = totalReviews > 0 ? (count / totalReviews * 100).toFixed(1) : 0;
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                    <span>${'⭐'.repeat(rating)} (${rating})</span>
+                                    <div style="flex: 1; margin: 0 1rem;">
+                                        <div style="background: #f0f0f0; height: 10px; border-radius: 5px;">
+                                            <div style="background: #667eea; height: 100%; width: ${percentage}%; border-radius: 5px;"></div>
+                                        </div>
+                                    </div>
+                                    <span><strong>${count}</strong> (${percentage}%)</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Additional Tools Functions
+        function exportData() {
+            const data = {
+                messages: messagesData,
+                reviews: reviewsData,
+                exportDate: new Date().toISOString(),
+                summary: {
+                    totalMessages: messagesData.length,
+                    newMessages: messagesData.filter(m => m.status === 'new').length,
+                    totalReviews: reviewsData.length,
+                    approvedReviews: reviewsData.filter(r => r.status === 'approved').length,
+                    avgRating: reviewsData.length > 0 ? 
+                        (reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length).toFixed(1) : 0
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `istisharati_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('تم تصدير البيانات بنجاح! 📊', 'success');
+        }
+
+        function generateReport() {
+            const serviceNames = {
+                'behavior': 'تعديل السلوك',
+                'autism': 'التوحد وذوي الإعاقة',
+                'family': 'الاستشارة الأسرية'
+            };
+
+            const serviceCount = messagesData.reduce((acc, m) => {
+                const serviceName = serviceNames[m.service] || m.service;
+                acc[serviceName] = (acc[serviceName] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const ratingDistribution = reviewsData.reduce((acc, r) => {
+                acc[r.rating] = (acc[r.rating] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const report = `
+📈 تقرير شامل - موقع استشارتي
+===============================
+
+📊 إحصائيات عامة:
+- إجمالي الرسائل: ${messagesData.length}
+- الرسائل الجديدة: ${messagesData.filter(m => m.status === 'new').length}
+- الرسائل المقروءة: ${messagesData.filter(m => m.status === 'read').length}
+- إجمالي التقييمات: ${reviewsData.length}
+- التقييمات المُظهرة: ${reviewsData.filter(r => r.status === 'approved').length}
+- التقييمات المعلقة: ${reviewsData.filter(r => r.status === 'pending').length}
+- التقييمات المرفوضة: ${reviewsData.filter(r => r.status === 'rejected').length}
+- متوسط التقييم: ${reviewsData.length > 0 ? (reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length).toFixed(1) : 0}
+
+📨 تفصيل الرسائل حسب نوع الاستشارة:
+${Object.entries(serviceCount).map(([service, count]) => `- ${service}: ${count} رسالة`).join('\n')}
+
+⭐ توزيع التقييمات:
+${Object.entries(ratingDistribution).sort((a, b) => b[0] - a[0]).map(([rating, count]) => `- ${rating} نجوم: ${count} تقييم`).join('\n')}
+
+📅 تاريخ التقرير: ${formatDate(new Date())}
+===============================
+            `;
+            
+            const blob = new Blob([report], { type: 'text/plain; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `تقرير_استشارتي_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('تم إنشاء التقرير بنجاح! 📈', 'success');
+        }
+
+        function clearOldData() {
+            if (!confirm('هل أنت متأكد من حذف البيانات الأقدم من 30 يوم؟')) return;
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            let deletedMessages = 0;
+            let deletedReviews = 0;
+
+            if (isFirebaseConnected) {
+                showMessage('جاري حذف البيانات القديمة...', 'info');
+            } else {
+                const oldMessages = messagesData.filter(m => {
+                    const messageDate = m.createdAt?.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
+                    return messageDate < thirtyDaysAgo && m.status === 'read';
+                });
+
+                const oldReviews = reviewsData.filter(r => {
+                    const reviewDate = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
+                    return reviewDate < thirtyDaysAgo && (r.status === 'approved' || r.status === 'rejected');
+                });
+
+                deletedMessages = oldMessages.length;
+                deletedReviews = oldReviews.length;
+
+                messagesData = messagesData.filter(m => !oldMessages.includes(m));
+                reviewsData = reviewsData.filter(r => !oldReviews.includes(r));
+                
+                filteredMessages = [...messagesData];
+                filteredReviews = [...reviewsData];
+                
+                displayMessages();
+                displayReviews();
+                updateStats();
+            }
+
+            showMessage(`تم حذف ${deletedMessages} رسالة و ${deletedReviews} تقييم قديم`, 'success');
+        }
+
+        async function testConnection() {
+            showMessage('جاري اختبار الاتصال...', 'info');
+            
+            if (!isFirebaseConnected) {
+                showMessage('غير متصل بـ Firebase - يعمل في الوضع التجريبي', 'error');
+                return;
+            }
+
+            try {
+                await db.collection('test').add({
+                    test: true,
+                    timestamp: new Date()
+                });
+                
+                showMessage('الاتصال بـ Firebase يعمل بشكل صحيح ✅', 'success');
+                
+                const testDocs = await db.collection('test').where('test', '==', true).get();
+                testDocs.forEach(doc => doc.ref.delete());
+                
+            } catch (error) {
+                console.error('خطأ في اختبار الاتصال:', error);
+                showMessage('خطأ في الاتصال بـ Firebase', 'error');
+            }
+        }
+
+        // Statistics Functions
+        function updateStats() {
+            document.getElementById('messagesCount').textContent = messagesData.length;
+            document.getElementById('newMessagesCount').textContent = messagesData.filter(m => m.status === 'new').length;
+            document.getElementById('reviewsCount').textContent = reviewsData.length;
+            
+            let videoCount = 0;
+            for (let i = 1; i <= 3; i++) {
+                const preview = document.getElementById(`video${i}Preview`);
+                if (preview && !preview.innerHTML.includes('لا يوجد فيديو')) {
+                    videoCount++;
+                }
+            }
+            document.getElementById('videosCount').textContent = videoCount;
+            
+            const avgRating = reviewsData.length > 0 ? 
+                (reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length).toFixed(1) : 0;
+            document.getElementById('avgRating').textContent = avgRating;
+        }
+
+        function updateNotifications() {
+            const newMessagesCount = messagesData.filter(m => m.status === 'new').length;
+            const pendingReviewsCount = reviewsData.filter(r => r.status === 'pending').length;
+
+            const messagesBadge = document.getElementById('messagesNotification');
+            const reviewsBadge = document.getElementById('reviewsNotification');
+
+            if (newMessagesCount > 0) {
+                messagesBadge.textContent = newMessagesCount;
+                messagesBadge.style.display = 'flex';
+            } else {
+                messagesBadge.style.display = 'none';
+            }
+
+            if (pendingReviewsCount > 0) {
+                reviewsBadge.textContent = pendingReviewsCount;
+                reviewsBadge.style.display = 'flex';
+            } else {
+                reviewsBadge.style.display = 'none';
+            }
+        }
+
+        // Utility Functions
+        function getReviewStatusText(status) {
+            const statusMap = {
+                'pending': 'في الانتظار',
+                'approved': 'مُظهر',
+                'rejected': 'مرفوض'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatDate(date) {
+            if (!date) return 'غير محدد';
+            
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'الآن';
+            if (minutes < 60) return `منذ ${minutes} دقيقة`;
+            if (hours < 24) return `منذ ${hours} ساعة`;
+            if (days < 7) return `منذ ${days} يوم`;
+            
+            return date.toLocaleDateString('ar-SA', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showMessage(message, type = 'success') {
+            const popup = document.getElementById('messagePopup');
+            const messageSpan = document.getElementById('popupMessage');
+            
+            messageSpan.textContent = message;
+            popup.className = `message-popup ${type} show`;
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 5000);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(event) {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            initializeFirebase();
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    if (modal.style.display === 'flex') {
+                        modal.style.display = 'none';
+                    }
+                });
+            }
+            
+            if (event.ctrlKey && event.key === 'r') {
+                event.preventDefault();
+                loadMessages();
+                loadReviews();
+                showMessage('تم تحديث البيانات', 'info');
+            }
+        });
+
+        // Auto-refresh for demo mode
+        setInterval(() => {
+            if (!isFirebaseConnected && document.getElementById('dashboard').style.display !== 'none') {
+                if (Math.random() < 0.1) {
+                    addDemoMessage();
+                }
+            }
+        }, 30000);
+
+        // Performance monitoring
+        function logPerformance(action, startTime) {
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            console.log(`${action} took ${duration.toFixed(2)} milliseconds`);
+        }
+
+        // User preferences
+        let notificationSoundsEnabled = false;
+
+        function saveUserPreferences() {
+            const preferences = {
+                notificationSounds: notificationSoundsEnabled,
+                lastLogin: new Date().toISOString()
+            };
+            localStorage.setItem('adminPreferences', JSON.stringify(preferences));
+        }
+
+        function loadUserPreferences() {
+            try {
+                const preferences = JSON.parse(localStorage.getItem('adminPreferences') || '{}');
+                notificationSoundsEnabled = preferences.notificationSounds || false;
+            } catch (error) {
+                console.error('خطأ في تحميل التفضيلات:', error);
+            }
+        }
+
+        loadUserPreferences();
+        window.addEventListener('beforeunload', saveUserPreferences);
+    </script>
+</body>
+</html>

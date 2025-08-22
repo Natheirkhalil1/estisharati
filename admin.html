@@ -2731,6 +2731,17 @@ ${Object.entries(ratingDistribution).sort((a, b) => b[0] - a[0]).map(([rating, c
 
         loadUserPreferences();
         window.addEventListener('beforeunload', saveUserPreferences);
+    // منع فتح DevTools بزر F12
+    document.addEventListener("keydown", function(e) {
+        if (e.key == "F12" || (e.ctrlKey && e.shiftKey && e.key == "I")) {
+            e.preventDefault();
+        }
+    });
+
+    // منع القائمة اليمنى
+    document.addEventListener("contextmenu", function(e) {
+        e.preventDefault();
+    });
     </script>
 </body>
 </html>

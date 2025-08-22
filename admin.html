@@ -832,23 +832,36 @@
     </div>
 
     <!-- Login Screen -->
-    <div id="loginContainer" class="login-container">
-        <div class="login-box">
-            <h1>🔐 لوحة تحكم استشارتي</h1>
-            <div id="firebaseStatus"></div>
-            <form onsubmit="adminLogin(event)">
-                <div class="form-group">
-                    <label for="username">اسم المستخدم:</label>
-                    <input type="text" id="username" required placeholder="أدخل اسم المستخدم">
-                </div>
-                <div class="form-group">
-                    <label for="password">كلمة المرور:</label>
-                    <input type="password" id="password" required placeholder="أدخل كلمة المرور">
-                </div>
-                <button type="submit" class="login-btn" id="loginBtn">🚀 دخول</button>
-            </form>
-        </div>
+<div id="loginContainer" class="login-container">
+    <div class="login-box">
+        <h1>🔐 لوحة تحكم استشارتي</h1>
+        <div id="firebaseStatus"></div>
+        <form onsubmit="adminLogin(event)">
+            <div class="form-group">
+                <label for="username">اسم المستخدم:</label>
+                <input type="text" id="username" required placeholder="أدخل اسم المستخدم">
+            </div>
+            <div class="form-group">
+                <label for="password">كلمة المرور:</label>
+                <input type="password" id="password" required placeholder="أدخل كلمة المرور">
+            </div>
+            <button type="submit" class="login-btn" id="loginBtn">🚀 دخول</button>
+        </form>
+
+        <!-- زر العودة للرئيسية -->
+<!-- زر العودة للرئيسية -->
+<!-- زر العودة للرئيسية -->
+<button id="homeBtn" class="login-btn" style="margin-top: 10px;">🏠 العودة للرئيسية</button>
     </div>
+</div>
+
+<!-- سكربت العودة للرئيسية -->
+<script>
+    document.getElementById("homeBtn").addEventListener("click", function() {
+        window.location.href = "index.html"; // عدّل إذا اسم الصفحة الرئيسية مختلف
+    });
+</script>
+
 
     <!-- Dashboard -->
     <div id="dashboard" class="dashboard">

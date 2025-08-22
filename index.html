@@ -1963,36 +1963,35 @@
                 console.error('خطأ في تحميل أوصاف الفيديوهات:', error);
             }
         }
+function playVideo(videoNumber) {
+    if (isFirebaseConnected && videosData[`video${videoNumber}`] && videosData[`video${videoNumber}`].url) {
+        const modal = document.getElementById('videoModal');
+        const video = document.getElementById('modalVideo');
 
-        function playVideo(videoNumber) {
-            if (isFirebaseConnected && videosData[`video${videoNumber}`] && videosData[`video${videoNumber}`].url) {
-                const modal = document.getElementById('videoModal');
-                const video = document.getElementById('modalVideo');
-                
-                video.src = videosData[`video${videoNumber}`].url;
-                modal.style.display = 'flex';
-                
-                modal.style.opacity = '0';
-                setTimeout(() => {
-                    modal.style.opacity = '1';
-                }, 10);
-                
-                video.play().catch(error => {
-                    console.log('Autoplay prevented:', error);
-                    showMessage('اضغط زر التشغيل لبدء الفيديو', 'info');
-                });
-                
-                document.body.style.overflow = 'hidden';
-            } else {
-                const videoTitles = [
-                    '🎯 تعرف على فريقنا المتميز',
-                    '⭐ قصص نجاح ملهمة', 
-                    '🔥 منهجيتنا في العمل'
-                ];
-                
-                showMessage(`سيتم إضافة فيديو: ${videoTitles[videoNumber - 1]} قريباً`, 'info');
-            }
-        }
+        video.src = videosData[`video${videoNumber}`].url;
+        video.muted = true;           // مهم للموبايل
+        video.playsInline = true;     // مهم على iOS
+        video.autoplay = true;
+
+        modal.style.display = 'flex';
+        modal.style.opacity = '0';
+        setTimeout(() => modal.style.opacity = '1', 10);
+
+        video.play().catch(error => {
+            console.log('Autoplay prevented:', error);
+            showMessage('اضغط زر التشغيل لبدء الفيديو', 'info');
+        });
+
+        document.body.style.overflow = 'hidden';
+    } else {
+        const videoTitles = [
+            '🎯 تعرف على فريقنا المتميز',
+            '⭐ قصص نجاح ملهمة', 
+            '🔥 منهجيتنا في العمل'
+        ];
+        showMessage(`سيتم إضافة فيديو: ${videoTitles[videoNumber - 1]} قريباً`, 'info');
+    }
+}
 
         function closeVideoModal() {
             const modal = document.getElementById('videoModal');
@@ -2526,6 +2525,13 @@
     document.addEventListener("contextmenu", function(e) {
         e.preventDefault();
     });
+ document.addEventListener("keydown", function(e) {
+        // Ctrl + U
+        if (e.ctrlKey && e.key.toLowerCase() === "u") {
+            e.preventDefault();
+            alert("Viewing page source is disabled!");
+        }
+    });
     </script>
 </body>
 </html>

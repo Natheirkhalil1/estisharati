@@ -1622,6 +1622,28 @@
     </div>
 
     <script>
+        // منع النقر الأيمن والاختصارات
+    document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showMessage('هذا الإجراء محظور لأسباب أمنية', 'warning');
+        return false;
+    });
+    
+    // منع اختصارات لوحة المفاتيح الحساسة
+    document.addEventListener('keydown', e => {
+        // F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+C
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.key === 'u') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'J')) {
+            e.preventDefault();
+            showMessage('هذا الإجراء محظور لأسباب أمنية', 'warning');
+            return false;
+        }
+    });
+    
+   
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDJVENqZbrfoVfVYG6cV3mM6PLWqO0HFAE",
@@ -2514,24 +2536,20 @@ function playVideo(videoNumber) {
                 video.src = '';
             });
         });
-    // منع فتح DevTools بزر F12
-    document.addEventListener("keydown", function(e) {
-        if (e.key == "F12" || (e.ctrlKey && e.shiftKey && e.key == "I")) {
-            e.preventDefault();
-        }
-    });
-
-    // منع القائمة اليمنى
-    document.addEventListener("contextmenu", function(e) {
-        e.preventDefault();
-    });
- document.addEventListener("keydown", function(e) {
-        // Ctrl + U
-        if (e.ctrlKey && e.key.toLowerCase() === "u") {
-            e.preventDefault();
-            alert("Viewing page source is disabled!");
-        }
-    });
-    </script>
+   
+</script>
+<script>
+const disabledKeys = ["u", "U", "I", "J", "c", "C", "x"];
+const showAlert = e => {
+  e.preventDefault();
+};
+document.addEventListener("contextmenu", e => showAlert(e));
+document.addEventListener("keydown", e => {
+  // إذا تم الضغط على Ctrl وأحد المفاتيح المحظورة، أو F12
+  if ((e.ctrlKey && disabledKeys.includes(e.key)) || e.key === "F12") {
+    showAlert(e);
+  }
+});
+</script>
 </body>
 </html>

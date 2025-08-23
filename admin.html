@@ -847,18 +847,15 @@
             </div>
             <button type="submit" class="login-btn" id="loginBtn">🚀 دخول</button>
         </form>
+            <button id="homeBtn" class="login-btn" style="margin-top: 10px;">🏠 العودة للرئيسية</button>
+            <button id="googleAdminBtn">تسجيل دخول الأدمن بـ Google</button>
 
-        <!-- زر العودة للرئيسية -->
-<!-- زر العودة للرئيسية -->
-<!-- زر العودة للرئيسية -->
-<button id="homeBtn" class="login-btn" style="margin-top: 10px;">🏠 العودة للرئيسية</button>
     </div>
 </div>
 
-<!-- سكربت العودة للرئيسية -->
 <script>
     document.getElementById("homeBtn").addEventListener("click", function() {
-        window.location.href = "index.html"; // عدّل إذا اسم الصفحة الرئيسية مختلف
+        window.location.href = "index.html"; 
     });
 </script>
 
@@ -1151,7 +1148,79 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        document.getElementById('googleAdminBtn').addEventListener('click', async () => {
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebase.auth().signInWithPopup(provider);
+
+        const user = result.user;
+        console.log('🔑 تم تسجيل الدخول عبر Google:', user.email);
+
+        // تحقق من صلاحية الأدمن في Firestore
+        const query = await db.collection('usersRoles')
+            .where('email', '==', user.email)
+            .limit(1)
+            .get();
+
+        if (query.empty) {
+            showMessage('ليس لديك صلاحية الدخول كأدمن', 'error');
+            await firebase.auth().signOut();
+            return;
+        }
+
+        const userData = query.docs[0].data();
+        if (userData.role !== 'admin') {
+            showMessage('ليس لديك صلاحية الدخول كأدمن', 'error');
+            await firebase.auth().signOut();
+            return;
+        }
+
+        // إنشاء جلسة الأدمن
+        const sessionData = {
+            userId: user.uid,
+            email: user.email,
+            username: userData.username || user.displayName,
+            role: userData.role,
+            loginTime: new Date().toISOString(),
+            sessionId: Date.now().toString(36) + Math.random().toString(36).substr(2)
+        };
+
+        localStorage.setItem('adminSession', JSON.stringify(sessionData));
+        sessionStorage.setItem('currentUser', JSON.stringify(sessionData));
+        currentUser = sessionData;
+
+        showMessage(`مرحباً ${user.email}! تم تسجيل الدخول كأدمن`, 'success');
+        setTimeout(() => showDashboard(), 1500);
+
+    } catch (error) {
+        console.error('❌ خطأ في تسجيل الدخول عبر Google:', error);
+        showMessage('حدث خطأ أثناء تسجيل الدخول: ' + error.message, 'error');
+    }
+});
+
+        // منع النقر الأيمن والاختصارات
+    document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showMessage('هذا الإجراء محظور لأسباب أمنية', 'warning');
+        return false;
+    });
+    
+    // منع اختصارات لوحة المفاتيح الحساسة
+    document.addEventListener('keydown', e => {
+        // F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+C
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.key === 'u') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'J')) {
+            e.preventDefault();
+            showMessage('هذا الإجراء محظور لأسباب أمنية', 'warning');
+            return false;
+        }
+    });
+    
+
+            // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDJVENqZbrfoVfVYG6cV3mM6PLWqO0HFAE",
             authDomain: "flisten-be8e5.firebaseapp.com",
@@ -1166,9 +1235,7 @@
         let isFirebaseConnected = false;
         let currentUser = null;
 
-        // Admin credentials
-        const ADMIN_USERNAME = "admin";
-        const ADMIN_PASSWORD = "123456";
+       
 
         // Data stores
         let messagesData = [];
@@ -1191,7 +1258,7 @@
                 
                 db.enableNetwork().then(() => {
                     console.log('✅ تم تفعيل الشبكة');
-                    return db.collection('settings').limit(1).get();
+return db.collection('usersRoles').limit(1).get();
                 }).then(() => {
                     isFirebaseConnected = true;
                     console.log('✅ تم الاتصال بـ Firebase بنجاح');
@@ -1264,45 +1331,293 @@
                 });
         }
 
-        // Login function
-        async function adminLogin(event) {
-            event.preventDefault();
-            
-            const loginBtn = document.getElementById('loginBtn');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'جاري تسجيل الدخول...';
-            
-            try {
-                if (isFirebaseConnected) {
-                    try {
-                        await auth.signInWithEmailAndPassword(username, password);
-                        currentUser = auth.currentUser;
-                        showDashboard();
-                    } catch (authError) {
-                        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                            showDashboard();
-                        } else {
-                            throw new Error('بيانات الدخول غير صحيحة');
-                        }
-                    }
-                } else {
-                    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                        showDashboard();
-                    } else {
-                        throw new Error('بيانات الدخول غير صحيحة');
-                    }
-                }
-            } catch (error) {
-                showMessage(error.message || 'خطأ في تسجيل الدخول', 'error');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = '🚀 دخول';
-            }
-        }
+        // Login function// دالة adminLogin مع تشخيص مفصل للأخطاء
+async function adminLogin(event) {
+    event.preventDefault();
+    
+    console.log('🔍 بدء عملية تسجيل الدخول...');
+    
+    const loginBtn = document.getElementById('loginBtn');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    
+    console.log('📝 البيانات المدخلة:', {
+        username: username,
+        passwordLength: password.length,
+        hasFirebase: typeof firebase !== 'undefined',
+        isFirebaseConnected: isFirebaseConnected
+    });
+    
+    if (!username || !password) {
+        console.error('❌ بيانات ناقصة');
+        showMessage('يرجى إدخال جميع البيانات المطلوبة', 'error');
+        return;
+    }
 
+    if (!isFirebaseConnected) {
+        console.error('❌ Firebase غير متصل');
+        showMessage('لا يمكن تسجيل الدخول. قاعدة البيانات غير متاحة', 'error');
+        return;
+    }
+    
+    if (typeof db === 'undefined') {
+        console.error('❌ متغير db غير معرف');
+        showMessage('خطأ في الاتصال بقاعدة البيانات', 'error');
+        return;
+    }
+    
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'جاري التحقق...';
+    
+    try {
+        console.log('🔍 البحث في قاعدة البيانات...');
+        
+        let userQuery;
+        
+        // التحقق من نوع البيانات المدخلة (إيميل أم اسم مستخدم)
+        if (username.includes('@')) {
+            console.log('📧 البحث بالإيميل:', username);
+            userQuery = await db.collection('usersRoles')
+                .where('email', '==', username)
+                .where('status', '==', 'active')
+                .limit(1)
+                .get();
+        } else {
+            console.log('👤 البحث باسم المستخدم:', username);
+            userQuery = await db.collection('usersRoles')
+                .where('username', '==', username)
+                .where('status', '==', 'active')
+                .limit(1)
+                .get();
+        }
+        
+        console.log('📊 نتائج البحث:', {
+            empty: userQuery.empty,
+            size: userQuery.size,
+            docs: userQuery.docs.length
+        });
+        
+        // التحقق من وجود المستخدم
+        if (userQuery.empty) {
+            console.error('❌ المستخدم غير موجود في قاعدة البيانات');
+            
+            // محاولة البحث بدون شرط الحالة للتشخيص
+            let debugQuery;
+            if (username.includes('@')) {
+                debugQuery = await db.collection('usersRoles').where('email', '==', username).get();
+            } else {
+                debugQuery = await db.collection('usersRoles').where('username', '==', username).get();
+            }
+            
+            console.log('🔍 بحث تشخيصي (بدون شرط الحالة):', {
+                found: !debugQuery.empty,
+                count: debugQuery.size
+            });
+            
+            if (!debugQuery.empty) {
+                const user = debugQuery.docs[0].data();
+                console.log('👤 بيانات المستخدم الموجود:', {
+                    email: user.email,
+                    username: user.username,
+                    status: user.status,
+                    hasPassword: !!user.password
+                });
+            }
+            
+            showMessage('المستخدم غير موجود أو غير مفعل', 'error');
+            return;
+        }
+        
+        const userDoc = userQuery.docs[0];
+        const userData = userDoc.data();
+        
+        console.log('✅ تم العثور على المستخدم:', {
+            id: userDoc.id,
+            email: userData.email,
+            username: userData.username,
+            role: userData.role,
+            status: userData.status,
+            hasPassword: !!userData.password
+        });
+        
+        // التحقق من كلمة المرور
+        console.log('🔐 التحقق من كلمة المرور...');
+        if (userData.password !== password) {
+            console.error('❌ كلمة المرور غير صحيحة');
+            console.log('🔍 مقارنة كلمات المرور:', {
+                inputPasswordLength: password.length,
+                dbPasswordLength: userData.password ? userData.password.length : 0,
+                match: userData.password === password
+            });
+            showMessage('كلمة المرور غير صحيحة', 'error');
+            return;
+        }
+        
+        console.log('✅ كلمة المرور صحيحة');
+        
+        // تحديث آخر دخول
+        console.log('📝 تحديث آخر دخول...');
+        await userDoc.ref.update({
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+            loginCount: firebase.firestore.FieldValue.increment(1)
+        });
+        
+        console.log('✅ تم تحديث آخر دخول');
+        
+        // حفظ بيانات الجلسة
+        const sessionData = {
+            userId: userDoc.id,
+            email: userData.email,
+            username: userData.username || username,
+            role: userData.role || 'admin',
+            loginTime: new Date().toISOString(),
+            sessionId: Date.now().toString(36) + Math.random().toString(36).substr(2)
+        };
+
+        localStorage.setItem('adminSession', JSON.stringify(sessionData));
+        localStorage.setItem('sessionExpiry', (Date.now() + 8 * 60 * 60 * 1000).toString());
+        sessionStorage.setItem('currentUser', JSON.stringify(sessionData));
+
+        currentUser = sessionData;
+        
+        console.log('✅ تم حفظ بيانات الجلسة:', sessionData);
+        
+        showMessage(`مرحباً ${userData.email}! تم تسجيل الدخول بنجاح`, 'success');
+        
+        setTimeout(() => {
+            console.log('🚀 توجيه للوحة التحكم...');
+            showDashboard();
+        }, 1500);
+
+    } catch (error) {
+        console.error('❌ خطأ في تسجيل الدخول:', error);
+        console.error('تفاصيل الخطأ:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+        showMessage('حدث خطأ أثناء تسجيل الدخول: ' + error.message, 'error');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '🚀 دخول';
+        console.log('🔄 انتهاء محاولة تسجيل الدخول');
+    }
+}
+
+// دالة للتحقق من حالة Firebase
+function checkFirebaseStatus() {
+    console.log('🔍 فحص حالة Firebase:');
+    console.log('- Firebase متاح:', typeof firebase !== 'undefined');
+    console.log('- قاعدة البيانات متاحة:', typeof db !== 'undefined');
+    console.log('- Firebase متصل:', isFirebaseConnected);
+    
+    if (typeof firebase !== 'undefined' && typeof db !== 'undefined') {
+        console.log('- Firebase config:', firebase.app().options);
+    }
+    
+    return {
+        hasFirebase: typeof firebase !== 'undefined',
+        hasDb: typeof db !== 'undefined',
+        isConnected: isFirebaseConnected
+    };
+}
+
+// دالة لاختبار قاعدة البيانات مباشرة
+async function testDatabase() {
+    console.log('🧪 اختبار قاعدة البيانات...');
+    
+    try {
+        const testQuery = await db.collection('usersRoles').limit(1).get();
+        console.log('✅ قاعدة البيانات تعمل، عدد المستندات:', testQuery.size);
+        
+        if (!testQuery.empty) {
+            const firstDoc = testQuery.docs[0];
+            console.log('📄 أول مستند:', {
+                id: firstDoc.id,
+                data: firstDoc.data()
+            });
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ خطأ في قاعدة البيانات:', error);
+        return false;
+    }
+}
+
+// تشغيل هذه الدوال في Console للتشخيص
+console.log('🔧 دوال التشخيص متاحة:');
+console.log('- checkFirebaseStatus(): للتحقق من حالة Firebase');
+console.log('- testDatabase(): لاختبار قاعدة البيانات');
+console.log('- قم بفتح Developer Tools واكتب اسم الدالة لتشغيلها');
+
+// دالة للحصول على IP المستخدم
+async function getCurrentIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('Error getting IP:', error);
+        return 'unknown';
+    }
+}
+
+// تحديث دالة تسجيل الخروج
+async function adminLogout() {
+    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+        try {
+            // تسجيل حدث الخروج
+            if (isFirebaseConnected && currentUser) {
+                await db.collection('securityLogs').add({
+                    eventType: 'logout',
+                    userId: currentUser.userId,
+                    userEmail: currentUser.email,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sessionId: currentUser.sessionId
+                });
+            }
+            
+            // تسجيل خروج من Firebase Auth
+            if (auth.currentUser) {
+                await auth.signOut();
+            }
+            
+            if (messagesListener) messagesListener();
+            if (reviewsListener) reviewsListener();
+            
+            clearUserSession();
+            currentUser = null;
+            
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            showMessage('تم تسجيل الخروج بنجاح', 'success');
+            
+        } catch (error) {
+            console.error('خطأ في تسجيل الخروج:', error);
+            // Force logout anyway
+            window.location.reload();
+        }
+    }
+}
+
+// تحديث دالة التحقق من الاتصال
+function checkFirebaseConnection() {
+    try {
+        return db.collection('usersRoles').limit(1).get().then(() => {
+            isFirebaseConnected = true;
+            console.log('✅ Firebase connected successfully');
+            return true;
+        });
+    } catch (error) {
+        console.error('❌ Firebase connection error:', error);
+        isFirebaseConnected = false;
+        return false;
+    }
+}
         function showDashboard() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
@@ -2731,46 +3046,7 @@ ${Object.entries(ratingDistribution).sort((a, b) => b[0] - a[0]).map(([rating, c
 
         loadUserPreferences();
         window.addEventListener('beforeunload', saveUserPreferences);
-    // منع فتح DevTools بزر F12
-    document.addEventListener("keydown", function(e) {
-        if (e.key == "F12" || (e.ctrlKey && e.shiftKey && e.key == "I")) {
-            e.preventDefault();
-        }
-    });
+  </script>
 
-    // منع القائمة اليمنى
-    document.addEventListener("contextmenu", function(e) {
-        e.preventDefault();
-    });
- document.addEventListener("keydown", function(e) {
-        // Ctrl + U
-        if (e.ctrlKey && e.key.toLowerCase() === "u") {
-            e.preventDefault();
-            alert("Viewing page source is disabled!");
-        }
-    });
-//<![CDATA[
-document.oncontextmenu = function() {
-return false;
-};
-document.onkeydown = function(e) {
-if (e.keyCode == 123) {
-return false;
-}
-if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-return false;
-}
-if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-return false;
-}
-if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-return false;
-}
-if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) {
-return false;
-}
-}
-//]]>
-    </script>
 </body>
-</html>
+</html>     

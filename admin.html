@@ -848,8 +848,6 @@
             <button type="submit" class="login-btn" id="loginBtn">🚀 دخول</button>
         </form>
             <button id="homeBtn" class="login-btn" style="margin-top: 10px;">🏠 العودة للرئيسية</button>
-            <button id="googleAdminBtn">تسجيل دخول الأدمن بـ Google</button>
-
     </div>
 </div>
 
@@ -1148,56 +1146,7 @@
     </div>
 
     <script>
-        document.getElementById('googleAdminBtn').addEventListener('click', async () => {
-    try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-
-        const user = result.user;
-        console.log('🔑 تم تسجيل الدخول عبر Google:', user.email);
-
-        // تحقق من صلاحية الأدمن في Firestore
-        const query = await db.collection('usersRoles')
-            .where('email', '==', user.email)
-            .limit(1)
-            .get();
-
-        if (query.empty) {
-            showMessage('ليس لديك صلاحية الدخول كأدمن', 'error');
-            await firebase.auth().signOut();
-            return;
-        }
-
-        const userData = query.docs[0].data();
-        if (userData.role !== 'admin') {
-            showMessage('ليس لديك صلاحية الدخول كأدمن', 'error');
-            await firebase.auth().signOut();
-            return;
-        }
-
-        // إنشاء جلسة الأدمن
-        const sessionData = {
-            userId: user.uid,
-            email: user.email,
-            username: userData.username || user.displayName,
-            role: userData.role,
-            loginTime: new Date().toISOString(),
-            sessionId: Date.now().toString(36) + Math.random().toString(36).substr(2)
-        };
-
-        localStorage.setItem('adminSession', JSON.stringify(sessionData));
-        sessionStorage.setItem('currentUser', JSON.stringify(sessionData));
-        currentUser = sessionData;
-
-        showMessage(`مرحباً ${user.email}! تم تسجيل الدخول كأدمن`, 'success');
-        setTimeout(() => showDashboard(), 1500);
-
-    } catch (error) {
-        console.error('❌ خطأ في تسجيل الدخول عبر Google:', error);
-        showMessage('حدث خطأ أثناء تسجيل الدخول: ' + error.message, 'error');
-    }
-});
-
+        
         // منع النقر الأيمن والاختصارات
     document.addEventListener('contextmenu', e => {
         e.preventDefault();
@@ -1269,9 +1218,8 @@ return db.collection('usersRoles').limit(1).get();
                     
                     let errorMessage = 'خطأ في الاتصال بقاعدة البيانات';
                     
-                    if (error.code === 'permission-denied') {
-                        errorMessage = '⚠️ مشكلة في صلاحيات قاعدة البيانات';
-                    } else if (error.code === 'unavailable') {
+              
+                     if (error.code === 'unavailable') {
                         errorMessage = '⚠️ قاعدة البيانات غير متاحة حالياً';
                     }
                     
@@ -1334,142 +1282,74 @@ return db.collection('usersRoles').limit(1).get();
         // Login function// دالة adminLogin مع تشخيص مفصل للأخطاء
 async function adminLogin(event) {
     event.preventDefault();
-    
+
     console.log('🔍 بدء عملية تسجيل الدخول...');
-    
+
     const loginBtn = document.getElementById('loginBtn');
-    const username = document.getElementById('username').value.trim();
+    const identifier = document.getElementById('username').value.trim(); // يمكن يكون ايميل أو يوزر نيم
     const password = document.getElementById('password').value;
-    
-    console.log('📝 البيانات المدخلة:', {
-        username: username,
-        passwordLength: password.length,
-        hasFirebase: typeof firebase !== 'undefined',
-        isFirebaseConnected: isFirebaseConnected
-    });
-    
-    if (!username || !password) {
-        console.error('❌ بيانات ناقصة');
+
+    if (!identifier || !password) {
         showMessage('يرجى إدخال جميع البيانات المطلوبة', 'error');
         return;
     }
 
-    if (!isFirebaseConnected) {
-        console.error('❌ Firebase غير متصل');
-        showMessage('لا يمكن تسجيل الدخول. قاعدة البيانات غير متاحة', 'error');
-        return;
-    }
-    
-    if (typeof db === 'undefined') {
-        console.error('❌ متغير db غير معرف');
-        showMessage('خطأ في الاتصال بقاعدة البيانات', 'error');
-        return;
-    }
-    
     loginBtn.disabled = true;
     loginBtn.textContent = 'جاري التحقق...';
-    
+
     try {
-        console.log('🔍 البحث في قاعدة البيانات...');
-        
-        let userQuery;
-        
-        // التحقق من نوع البيانات المدخلة (إيميل أم اسم مستخدم)
-        if (username.includes('@')) {
-            console.log('📧 البحث بالإيميل:', username);
-            userQuery = await db.collection('usersRoles')
-                .where('email', '==', username)
-                .where('status', '==', 'active')
-                .limit(1)
-                .get();
+        let authUser;
+
+        if (identifier.includes('@')) {
+            // تسجيل الدخول بالإيميل
+            const userCredential = await firebase.auth().signInWithEmailAndPassword(identifier, password);
+            authUser = userCredential.user;
         } else {
-            console.log('👤 البحث باسم المستخدم:', username);
-            userQuery = await db.collection('usersRoles')
-                .where('username', '==', username)
+            // البحث باسم المستخدم في usersRoles
+            const querySnapshot = await db.collection('usersRoles')
+                .where('username', '==', identifier)
                 .where('status', '==', 'active')
                 .limit(1)
                 .get();
+
+            if (querySnapshot.empty) {
+                showMessage('المستخدم غير موجود أو غير مفعل', 'error');
+                return;
+            }
+
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
+
+            // تسجيل الدخول بالإيميل المرتبط باسم المستخدم
+            const userCredential = await firebase.auth().signInWithEmailAndPassword(userData.email, password);
+            authUser = userCredential.user;
         }
-        
-        console.log('📊 نتائج البحث:', {
-            empty: userQuery.empty,
-            size: userQuery.size,
-            docs: userQuery.docs.length
-        });
-        
-        // التحقق من وجود المستخدم
-        if (userQuery.empty) {
-            console.error('❌ المستخدم غير موجود في قاعدة البيانات');
-            
-            // محاولة البحث بدون شرط الحالة للتشخيص
-            let debugQuery;
-            if (username.includes('@')) {
-                debugQuery = await db.collection('usersRoles').where('email', '==', username).get();
-            } else {
-                debugQuery = await db.collection('usersRoles').where('username', '==', username).get();
-            }
-            
-            console.log('🔍 بحث تشخيصي (بدون شرط الحالة):', {
-                found: !debugQuery.empty,
-                count: debugQuery.size
-            });
-            
-            if (!debugQuery.empty) {
-                const user = debugQuery.docs[0].data();
-                console.log('👤 بيانات المستخدم الموجود:', {
-                    email: user.email,
-                    username: user.username,
-                    status: user.status,
-                    hasPassword: !!user.password
-                });
-            }
-            
-            showMessage('المستخدم غير موجود أو غير مفعل', 'error');
+
+        // التحقق من دور المستخدم
+        const userDocFinal = await db.collection('usersRoles').doc(authUser.uid).get();
+        if (!userDocFinal.exists) {
+            showMessage('المستخدم غير موجود في قاعدة البيانات', 'error');
             return;
         }
-        
-        const userDoc = userQuery.docs[0];
-        const userData = userDoc.data();
-        
-        console.log('✅ تم العثور على المستخدم:', {
-            id: userDoc.id,
-            email: userData.email,
-            username: userData.username,
-            role: userData.role,
-            status: userData.status,
-            hasPassword: !!userData.password
-        });
-        
-        // التحقق من كلمة المرور
-        console.log('🔐 التحقق من كلمة المرور...');
-        if (userData.password !== password) {
-            console.error('❌ كلمة المرور غير صحيحة');
-            console.log('🔍 مقارنة كلمات المرور:', {
-                inputPasswordLength: password.length,
-                dbPasswordLength: userData.password ? userData.password.length : 0,
-                match: userData.password === password
-            });
-            showMessage('كلمة المرور غير صحيحة', 'error');
+
+        const userDataFinal = userDocFinal.data();
+        if (userDataFinal.role !== 'admin' || userDataFinal.status !== 'active') {
+            showMessage('ليس لديك صلاحية الدخول كأدمن', 'error');
             return;
         }
-        
-        console.log('✅ كلمة المرور صحيحة');
-        
+
         // تحديث آخر دخول
-        console.log('📝 تحديث آخر دخول...');
-        await userDoc.ref.update({
+        await userDocFinal.ref.update({
             lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
             loginCount: firebase.firestore.FieldValue.increment(1)
         });
-        
-        console.log('✅ تم تحديث آخر دخول');
-        
+
         // حفظ بيانات الجلسة
         const sessionData = {
-            userId: userDoc.id,
-            email: userData.email,
-            username: userData.username || username,
-            role: userData.role || 'admin',
+            userId: authUser.uid,
+            email: userDataFinal.email,
+            username: userDataFinal.username || identifier,
+            role: userDataFinal.role,
             loginTime: new Date().toISOString(),
             sessionId: Date.now().toString(36) + Math.random().toString(36).substr(2)
         };
@@ -1478,29 +1358,24 @@ async function adminLogin(event) {
         localStorage.setItem('sessionExpiry', (Date.now() + 8 * 60 * 60 * 1000).toString());
         sessionStorage.setItem('currentUser', JSON.stringify(sessionData));
 
-        currentUser = sessionData;
-        
-        console.log('✅ تم حفظ بيانات الجلسة:', sessionData);
-        
-        showMessage(`مرحباً ${userData.email}! تم تسجيل الدخول بنجاح`, 'success');
-        
+        showMessage(`مرحباً ! تم تسجيل الدخول بنجاح`, 'success');
+
         setTimeout(() => {
-            console.log('🚀 توجيه للوحة التحكم...');
             showDashboard();
-        }, 1500);
+        }, 1000);
 
     } catch (error) {
-        console.error('❌ خطأ في تسجيل الدخول:', error);
-        console.error('تفاصيل الخطأ:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-        });
-        showMessage('حدث خطأ أثناء تسجيل الدخول: ' + error.message, 'error');
+        console.error('❌ خطأ أثناء تسجيل الدخول:', error);
+        let msg = '';
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            msg = 'الإيميل أو كلمة المرور غير صحيحة';
+        } else {
+            msg = error.message;
+        }
+        showMessage(msg, 'error');
     } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = '🚀 دخول';
-        console.log('🔄 انتهاء محاولة تسجيل الدخول');
     }
 }
 

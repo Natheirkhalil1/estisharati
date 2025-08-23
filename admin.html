@@ -1085,10 +1085,7 @@
                             <label>⏰ ساعات العمل:</label>
                             <input type="text" id="workingHours" placeholder="من 9 صباحاً إلى 6 مساءً">
                         </div>
-                        <div class="form-group">
-                            <label>📝 رسالة ترحيبية:</label>
-                            <textarea id="welcomeMessage" rows="3" placeholder="مرحباً بكم في استشارتي..."></textarea>
-                            <small style="color: #666; font-size: 0.9rem;">ستظهر في أعلى الصفحة الرئيسية</small>
+                        
                         </div>
                         <button type="submit" class="save-btn" id="saveSettingsBtn">💾 حفظ الإعدادات</button>
                     </form>
@@ -2157,7 +2154,6 @@ function checkFirebaseConnection() {
                     document.getElementById('contactEmail').value = settings.contactEmail || '';
                     document.getElementById('officeAddress').value = settings.officeAddress || '';
                     document.getElementById('workingHours').value = settings.workingHours || '';
-                    document.getElementById('welcomeMessage').value = settings.welcomeMessage || '';
                 }
             } catch (error) {
                 console.error('خطأ في تحميل الإعدادات:', error);
@@ -2179,7 +2175,6 @@ function checkFirebaseConnection() {
                     contactEmail: document.getElementById('contactEmail').value,
                     officeAddress: document.getElementById('officeAddress').value,
                     workingHours: document.getElementById('workingHours').value,
-                    welcomeMessage: document.getElementById('welcomeMessage').value,
                     updatedAt: new Date()
                 };
 
